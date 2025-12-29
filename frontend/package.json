@@ -1,0 +1,50 @@
+{
+  "name": "visualization-language-lab",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:unit": "vitest",
+    "lint": "eslint \"./src/**/*.{ts,js,vue}\" --fix --cache"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^9.4.2",
+    "@turf/turf": "^7.3.1",
+    "@vueuse/core": "^14.1.0",
+    "axios": "^1.13.2",
+    "d3": "^7.9.0",
+    "gsap": "^3.14.2",
+    "lil-gui": "^0.21.0",
+    "mapbox-gl": "^3.17.0",
+    "pinia": "^3.0.4",
+    "three": "^0.182.0",
+    "vue": "^3.5.25",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.57.0",
+    "@types/d3": "^7.4.3",
+    "@types/geojson": "^7946.0.16",
+    "@types/mapbox-gl": "^3.4.1",
+    "@types/three": "^0.182.0",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vitest/eslint-plugin": "^1.5.0",
+    "@vue/test-utils": "^2.4.6",
+    "eslint": "^9.39.1",
+    "eslint-plugin-vue": "~10.5.1",
+    "globals": "^16.5.0",
+    "jsdom": "^27.2.0",
+    "playwright": "^1.57.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4",
+    "vite-plugin-vue-devtools": "^8.0.5",
+    "vitest": "^4.0.14"
+  }
+}
