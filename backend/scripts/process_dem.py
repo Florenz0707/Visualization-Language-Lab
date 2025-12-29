@@ -316,7 +316,7 @@ def create_processing_summary():
             "merged_dem": "merged_dem_cropped.tif",
             "hillshade": "hillshade.tif",
             "heightmap": "heightmap_2048.png",
-            "contours": "contours_100m.geojson",
+            "contours": "contours.geojson",
             "projected_dem": "merged_dem_lambert.tif"
         },
         "key_locations": KEY_LOCATIONS
