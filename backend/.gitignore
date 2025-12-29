@@ -2,3 +2,4 @@
 
 data/boundaries
 data/dem
+data/geojson/contours_100m.geojson
