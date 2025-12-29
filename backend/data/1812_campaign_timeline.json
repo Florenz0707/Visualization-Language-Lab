@@ -1,0 +1,605 @@
+{
+  "campaign": "Napoleon's Russian Campaign 1812",
+  "source": "Historical records - Britannica, Wikipedia, Minard",
+  "date_range": {
+    "start": "1812-06-24",
+    "end": "1812-12-14"
+  },
+  "events": [
+    {
+      "id": "evt_001",
+      "date": "1812-06-24",
+      "name": "Crossing of the Niemen River",
+      "name_zh": "渡过涅曼河",
+      "type": "movement",
+      "location": {
+        "name": "Kaunas (Kovno)",
+        "lat": 54.8985,
+        "lon": 23.9036,
+        "country": "Lithuania"
+      },
+      "description": "Napoleon's Grande Armée of 685,000 men crosses the Niemen River into Russian territory, beginning the invasion.",
+      "description_zh": "拿破仑率领68.5万大军渡过涅曼河，进入俄罗斯领土，入侵开始。",
+      "participants": {
+        "french": {
+          "troops": 685000,
+          "commanders": [
+            "Napoleon Bonaparte"
+          ]
+        }
+      },
+      "significance": "high",
+      "confidence": 0.95
+    },
+    {
+      "id": "evt_002",
+      "date": "1812-06-28",
+      "name": "Occupation of Vilnius",
+      "name_zh": "占领维尔纽斯",
+      "type": "occupation",
+      "location": {
+        "name": "Vilnius",
+        "lat": 54.6872,
+        "lon": 25.2797,
+        "country": "Lithuania"
+      },
+      "description": "French forces enter Vilnius without resistance.",
+      "description_zh": "法军未遇抵抗进入维尔纽斯。",
+      "participants": {
+        "french": {
+          "troops": 650000
+        }
+      },
+      "casualties": {
+        "french": {
+          "dead": 5000,
+          "reason": "disease, desertion"
+        }
+      },
+      "significance": "medium",
+      "confidence": 0.9
+    },
+    {
+      "id": "evt_003",
+      "date": "1812-07-28",
+      "name": "Battle of Vitebsk",
+      "name_zh": "维捷布斯克战役",
+      "type": "battle",
+      "location": {
+        "name": "Vitebsk",
+        "lat": 55.1904,
+        "lon": 30.2049,
+        "country": "Belarus"
+      },
+      "description": "First major engagement. Russians withdraw after brief fighting.",
+      "description_zh": "首次主要交战，俄军短暂战斗后撤退。",
+      "participants": {
+        "french": {
+          "troops": 175000,
+          "commanders": [
+            "Napoleon Bonaparte"
+          ]
+        },
+        "russian": {
+          "troops": 75000,
+          "commanders": [
+            "Barclay de Tolly"
+          ]
+        }
+      },
+      "casualties": {
+        "french": {
+          "killed": 500,
+          "wounded": 2000
+        },
+        "russian": {
+          "killed": 300,
+          "wounded": 2000
+        }
+      },
+      "result": "French tactical victory, Russian strategic withdrawal",
+      "significance": "medium",
+      "confidence": 0.85
+    },
+    {
+      "id": "evt_004",
+      "date": "1812-08-17",
+      "name": "Battle of Smolensk",
+      "name_zh": "斯摩棱斯克战役",
+      "type": "battle",
+      "location": {
+        "name": "Smolensk",
+        "lat": 54.7818,
+        "lon": 32.0401,
+        "country": "Russia"
+      },
+      "description": "Major battle for the strategically important city. Russians conduct scorched earth policy.",
+      "description_zh": "争夺战略重镇的重要战役，俄军实施焦土政策。",
+      "participants": {
+        "french": {
+          "troops": 175000,
+          "commanders": [
+            "Napoleon Bonaparte",
+            "Ney",
+            "Davout"
+          ]
+        },
+        "russian": {
+          "troops": 130000,
+          "commanders": [
+            "Barclay de Tolly",
+            "Bagration"
+          ]
+        }
+      },
+      "casualties": {
+        "french": {
+          "killed": 3000,
+          "wounded": 9000
+        },
+        "russian": {
+          "killed": 6000,
+          "wounded": 8000
+        }
+      },
+      "result": "French victory, city destroyed",
+      "significance": "high",
+      "confidence": 0.9
+    },
+    {
+      "id": "evt_005",
+      "date": "1812-09-07",
+      "name": "Battle of Borodino",
+      "name_zh": "博罗季诺战役",
+      "type": "battle",
+      "location": {
+        "name": "Borodino",
+        "lat": 55.5167,
+        "lon": 35.8167,
+        "country": "Russia"
+      },
+      "description": "Bloodiest single-day battle of the Napoleonic Wars. Over 70,000 casualties.",
+      "description_zh": "拿破仑战争中伤亡最惨重的单日战役，超过7万人伤亡。",
+      "participants": {
+        "french": {
+          "troops": 130000,
+          "artillery": 587,
+          "commanders": [
+            "Napoleon Bonaparte",
+            "Davout",
+            "Ney",
+            "Murat"
+          ]
+        },
+        "russian": {
+          "troops": 120000,
+          "artillery": 640,
+          "commanders": [
+            "Kutuzov",
+            "Bagration",
+            "Barclay de Tolly"
+          ]
+        }
+      },
+      "casualties": {
+        "french": {
+          "killed": 10000,
+          "wounded": 20000,
+          "total": 30000
+        },
+        "russian": {
+          "killed": 15000,
+          "wounded": 30000,
+          "total": 45000
+        }
+      },
+      "result": "Pyrrhic French victory",
+      "significance": "critical",
+      "confidence": 0.95
+    },
+    {
+      "id": "evt_006",
+      "date": "1812-09-14",
+      "name": "Entry into Moscow",
+      "name_zh": "进入莫斯科",
+      "type": "occupation",
+      "location": {
+        "name": "Moscow",
+        "lat": 55.7558,
+        "lon": 37.6173,
+        "country": "Russia"
+      },
+      "description": "French army enters abandoned Moscow. Most of the population had evacuated.",
+      "description_zh": "法军进入空城莫斯科，大部分居民已撤离。",
+      "participants": {
+        "french": {
+          "troops": 100000,
+          "commanders": [
+            "Napoleon Bonaparte"
+          ]
+        }
+      },
+      "significance": "critical",
+      "confidence": 0.98
+    },
+    {
+      "id": "evt_007",
+      "date": "1812-09-15",
+      "name": "Fire of Moscow",
+      "name_zh": "莫斯科大火",
+      "type": "disaster",
+      "location": {
+        "name": "Moscow",
+        "lat": 55.7558,
+        "lon": 37.6173,
+        "country": "Russia"
+      },
+      "description": "Massive fire destroys three-quarters of the city. Likely started by Russian saboteurs.",
+      "description_zh": "大火摧毁城市四分之三，可能由俄国破坏者纵火。",
+      "participants": {
+        "french": {
+          "troops": 100000
+        }
+      },
+      "impact": "Destroyed supplies and shelter needed for winter",
+      "significance": "critical",
+      "confidence": 0.9
+    },
+    {
+      "id": "evt_008",
+      "date": "1812-10-19",
+      "name": "Retreat from Moscow begins",
+      "name_zh": "开始撤出莫斯科",
+      "type": "movement",
+      "location": {
+        "name": "Moscow",
+        "lat": 55.7558,
+        "lon": 37.6173,
+        "country": "Russia"
+      },
+      "description": "After waiting 5 weeks for a peace offer that never came, Napoleon orders the retreat.",
+      "description_zh": "等待5周和平提议未果后，拿破仑下令撤退。",
+      "participants": {
+        "french": {
+          "troops": 100000,
+          "commanders": [
+            "Napoleon Bonaparte"
+          ]
+        }
+      },
+      "significance": "critical",
+      "confidence": 0.95
+    },
+    {
+      "id": "evt_009",
+      "date": "1812-10-24",
+      "name": "Battle of Maloyaroslavets",
+      "name_zh": "马洛亚罗斯拉维茨战役",
+      "type": "battle",
+      "location": {
+        "name": "Maloyaroslavets",
+        "lat": 55.0167,
+        "lon": 36.4667,
+        "country": "Russia"
+      },
+      "description": "Failed attempt to retreat via a southern route with more supplies. Forced to use devastated Smolensk road.",
+      "description_zh": "尝试从南路撤退失败，被迫使用已被摧毁的斯摩棱斯克道路。",
+      "participants": {
+        "french": {
+          "troops": 24000,
+          "commanders": [
+            "Eugene de Beauharnais"
+          ]
+        },
+        "russian": {
+          "troops": 20000,
+          "commanders": [
+            "Kutuzov",
+            "Dokhturov"
+          ]
+        }
+      },
+      "casualties": {
+        "french": {
+          "total": 5000
+        },
+        "russian": {
+          "total": 6000
+        }
+      },
+      "result": "Strategic Russian victory - forced French onto worse route",
+      "significance": "high",
+      "confidence": 0.85
+    },
+    {
+      "id": "evt_010",
+      "date": "1812-11-09",
+      "name": "First snow",
+      "name_zh": "首场降雪",
+      "type": "weather",
+      "location": {
+        "name": "Between Smolensk and Vyazma",
+        "lat": 55.2,
+        "lon": 34.3,
+        "country": "Russia"
+      },
+      "description": "First major snowfall. Temperature drops dramatically, causing massive casualties from cold.",
+      "description_zh": "首场大雪，气温骤降，导致大量士兵冻死。",
+      "participants": {
+        "french": {
+          "troops": 50000
+        }
+      },
+      "casualties": {
+        "french": {
+          "dead": 5000,
+          "reason": "cold, starvation"
+        }
+      },
+      "weather": {
+        "temperature": -20,
+        "conditions": "heavy snow"
+      },
+      "significance": "high",
+      "confidence": 0.9
+    },
+    {
+      "id": "evt_011",
+      "date": "1812-11-16",
+      "name": "Battle of Krasnoi",
+      "name_zh": "克拉斯诺伊战役",
+      "type": "battle",
+      "location": {
+        "name": "Krasnoi",
+        "lat": 54.9553,
+        "lon": 32.0053,
+        "country": "Russia"
+      },
+      "description": "Russian forces intercept retreating French army. Heavy French losses.",
+      "description_zh": "俄军拦截撤退的法军，法军损失惨重。",
+      "participants": {
+        "french": {
+          "troops": 36000,
+          "commanders": [
+            "Napoleon",
+            "Ney",
+            "Davout"
+          ]
+        },
+        "russian": {
+          "troops": 60000,
+          "commanders": [
+            "Kutuzov",
+            "Miloradovich"
+          ]
+        }
+      },
+      "casualties": {
+        "french": {
+          "killed": 6000,
+          "captured": 20000,
+          "total": 26000
+        },
+        "russian": {
+          "total": 2000
+        }
+      },
+      "result": "Russian victory",
+      "significance": "high",
+      "confidence": 0.85
+    },
+    {
+      "id": "evt_012",
+      "date": "1812-11-26",
+      "name": "Crossing of the Berezina River",
+      "name_zh": "别列津纳河渡河",
+      "type": "battle",
+      "location": {
+        "name": "Studzienka (near Borisov)",
+        "lat": 54.3667,
+        "lon": 28.0167,
+        "country": "Belarus"
+      },
+      "description": "Dramatic river crossing under Russian attack. Pontoon bridges built in freezing water. Thousands drowned or killed.",
+      "description_zh": "在俄军攻击下的戏剧性渡河，在冰冷河水中搭建浮桥，数千人溺亡或被杀。",
+      "participants": {
+        "french": {
+          "troops": 27000,
+          "commanders": [
+            "Napoleon",
+            "Oudinot",
+            "Victor"
+          ]
+        },
+        "russian": {
+          "troops": 61000,
+          "commanders": [
+            "Wittgenstein",
+            "Chichagov"
+          ]
+        }
+      },
+      "casualties": {
+        "french": {
+          "killed": 10000,
+          "captured": 15000,
+          "drowned": 10000,
+          "total": 35000
+        },
+        "russian": {
+          "total": 4000
+        }
+      },
+      "result": "French escape but with catastrophic losses",
+      "significance": "critical",
+      "confidence": 0.9
+    },
+    {
+      "id": "evt_013",
+      "date": "1812-12-05",
+      "name": "Napoleon abandons army",
+      "name_zh": "拿破仑离开军队",
+      "type": "political",
+      "location": {
+        "name": "Smorgon",
+        "lat": 54.4833,
+        "lon": 26.4000,
+        "country": "Belarus"
+      },
+      "description": "Napoleon leaves the army and rushes back to Paris to manage political crisis.",
+      "description_zh": "拿破仑离开军队，急返巴黎处理政治危机。",
+      "participants": {
+        "french": {
+          "troops": 10000,
+          "commanders": [
+            "Murat (takes command)"
+          ]
+        }
+      },
+      "significance": "high",
+      "confidence": 0.95
+    },
+    {
+      "id": "evt_014",
+      "date": "1812-12-14",
+      "name": "Crossing out of Russia",
+      "name_zh": "撤出俄罗斯",
+      "type": "movement",
+      "location": {
+        "name": "Kaunas (Kovno)",
+        "lat": 54.8985,
+        "lon": 23.9036,
+        "country": "Lithuania"
+      },
+      "description": "Remnants of the Grande Armée cross back over the Niemen River. Only 22,000 of the original 685,000 survived.",
+      "description_zh": "大军残部渡回涅曼河，原68.5万人仅剩2.2万人幸存。",
+      "participants": {
+        "french": {
+          "troops": 22000
+        }
+      },
+      "casualties": {
+        "campaign_total": {
+          "french": {
+            "dead": 380000,
+            "captured": 100000,
+            "deserted": 100000,
+            "missing": 83000
+          }
+        }
+      },
+      "significance": "critical",
+      "confidence": 0.95
+    }
+  ],
+  "schwarzenberg_operations": {
+    "description": "Austrian corps under Schwarzenberg operated in southern flank",
+    "events": [
+      {
+        "id": "evt_sch_001",
+        "date": "1812-08-12",
+        "name": "Schwarzenberg advances into Volhynia",
+        "name_zh": "施瓦岑贝格进军沃里尼亚",
+        "type": "movement",
+        "location": {
+          "name": "Volhynia",
+          "lat": 50.7472,
+          "lon": 25.3254,
+          "country": "Ukraine"
+        },
+        "description": "Austrian corps of 34,000 under Schwarzenberg advances to protect southern flank.",
+        "participants": {
+          "austrian": {
+            "troops": 34000,
+            "commanders": [
+              "Prince Karl Schwarzenberg"
+            ]
+          }
+        },
+        "significance": "medium",
+        "confidence": 0.8
+      },
+      {
+        "id": "evt_sch_002",
+        "date": "1812-08-18",
+        "name": "Battle of Gorodechno",
+        "name_zh": "戈罗杰奇诺战役",
+        "type": "battle",
+        "location": {
+          "name": "Gorodechno",
+          "lat": 52.4667,
+          "lon": 26.0000,
+          "country": "Belarus"
+        },
+        "description": "Schwarzenberg defeats Russian forces under Tormasov.",
+        "participants": {
+          "coalition": {
+            "austrian": 18000,
+            "saxon": 16000,
+            "commanders": [
+              "Schwarzenberg",
+              "Reynier"
+            ]
+          },
+          "russian": {
+            "troops": 38000,
+            "commanders": [
+              "Tormasov"
+            ]
+          }
+        },
+        "casualties": {
+          "coalition": {
+            "total": 4000
+          },
+          "russian": {
+            "total": 6000
+          }
+        },
+        "result": "Coalition victory",
+        "significance": "medium",
+        "confidence": 0.75
+      },
+      {
+        "id": "evt_sch_003",
+        "date": "1812-10-18",
+        "name": "Schwarzenberg begins retreat",
+        "name_zh": "施瓦岑贝格开始撤退",
+        "type": "movement",
+        "location": {
+          "name": "Brest-Litovsk",
+          "lat": 52.0975,
+          "lon": 23.7340,
+          "country": "Belarus"
+        },
+        "description": "Austrian corps begins orderly withdrawal as main army retreats from Moscow.",
+        "participants": {
+          "austrian": {
+            "troops": 30000,
+            "commanders": [
+              "Schwarzenberg"
+            ]
+          }
+        },
+        "significance": "medium",
+        "confidence": 0.7
+      }
+    ]
+  },
+  "metadata": {
+    "total_events": 17,
+    "date_range_days": 173,
+    "max_army_size": 685000,
+    "final_survivors": 22000,
+    "survival_rate": 0.032,
+    "total_casualties_estimate": 663000,
+    "main_sources": [
+      "Britannica Encyclopedia",
+      "Charles Minard's graphical work (1869)",
+      "Historical military records",
+      "Academic historical research"
+    ],
+    "coordinate_system": "WGS84",
+    "confidence_note": "Confidence levels indicate data reliability: 0.95+ = well-documented, 0.8-0.95 = generally accepted, <0.8 = estimates with uncertainty"
+  }
+}
