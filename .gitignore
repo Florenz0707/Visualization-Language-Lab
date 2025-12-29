@@ -33,3 +33,10 @@ coverage
 
 # Vitest
 __screenshots__/
+
+report_template/*.aux
+report_template/*.log
+report_template/*.out
+report_template/*.pdf
+report_template/*.toc
+report_template/*.synctex
