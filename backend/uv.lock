@@ -68,7 +68,6 @@ dependencies = [
     { name = "aiofiles" },
     { name = "fastapi" },
     { name = "fiona" },
-    { name = "gdal" },
     { name = "geopandas" },
     { name = "httpx" },
     { name = "matplotlib" },
@@ -94,7 +93,6 @@ requires-dist = [
     { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "fastapi", specifier = ">=0.128.0" },
     { name = "fiona", specifier = ">=1.10.1" },
-    { name = "gdal", specifier = "==3.4.3" },
     { name = "geopandas", specifier = ">=1.1.2" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "matplotlib", specifier = ">=3.10.8" },
@@ -379,12 +377,6 @@ wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/e4/ff/c9a2b66b39f8628531ea58b320d66d951267c98c6a38684daa8f50fb02f8/fonttools-4.61.1-cp314-cp314t-win_amd64.whl", hash = "sha256:2180f14c141d2f0f3da43f3a81bc8aa4684860f6b0e6f9e165a4831f24e6a23b", size = 2400613, upload-time = "2025-12-12T17:31:18.769Z" },
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/c7/4e/ce75a57ff3aebf6fc1f4e9d508b8e5810618a33d900ad6c19eb30b290b97/fonttools-4.61.1-py3-none-any.whl", hash = "sha256:17d2bf5d541add43822bcf0c43d7d847b160c9bb01d15d5007d84e2217aaa371", size = 1148996, upload-time = "2025-12-12T17:31:21.03Z" },
 ]
-
-[[package]]
-name = "gdal"
-version = "3.4.3"
-source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
-sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/12/82/ed7f65fe6ab931514807c79370096a816ad8cad6cef03a2fef90845503f6/GDAL-3.4.3.tar.gz", hash = "sha256:f4f4b0bb34073b164c5a05a1b0eb44af47349e5606eb7b75244c2167ac462f36", size = 757573, upload-time = "2022-05-04T09:08:14.634Z" }
 
 [[package]]
 name = "geopandas"
