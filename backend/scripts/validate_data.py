@@ -16,6 +16,15 @@ DEM_DIR = DATA_DIR / "dem"
 BOUNDARIES_DIR = DATA_DIR / "boundaries"
 MAPS_DIR = DATA_DIR / "historical_maps"
 
+# 当缺少某些文件时，提示用户运行的脚本建议
+SUGGESTED_SCRIPTS = {
+    "movements.geojson": "scripts/generate_movements_geojson.py",
+    "territories.geojson": "scripts/generate_terrirories_geojson.py",
+    "contours.geojson": "scripts/process_dem.py  # 或使用 gdal_contour/generate_contours_geojson",
+    "events.geojson": "scripts/generate_events_geojson.py",
+    "countries.geojson": "scripts/convert_shapefiles_to_geojson.py",
+}
+
 
 class DataValidator:
     """数据验证器"""
@@ -39,13 +48,18 @@ class DataValidator:
         """
         if not filepath.exists():
             msg = f"{name}: 文件不存在 ({filepath.name})"
+            suggestion = SUGGESTED_SCRIPTS.get(filepath.name)
             if required:
                 self.results["failed"].append(msg)
                 print(f"❌ {msg}")
+                if suggestion:
+                    print(f"   建议: 运行 {suggestion} 以生成或下载 {filepath.name}")
                 return False
             else:
                 self.results["warnings"].append(msg)
                 print(f"⚠️  {msg}")
+                if suggestion:
+                    print(f"   建议: 运行 {suggestion} 以生成或下载 {filepath.name}")
                 return False
 
         try:
