@@ -288,7 +288,7 @@ def main():
     validator.check_processed_dem()
 
     # 检查等高线
-    contours_path = DEM_DIR / "contours.geojson"
+    contours_path = GEOJSON_DIR / "contours.geojson"
     validator.check_geojson_file(contours_path, "等高线", required=False)
 
     # 4. 验证历史地图
