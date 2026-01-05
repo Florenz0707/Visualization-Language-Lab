@@ -1,5 +1,8 @@
 .venv
 
+__pycache__/
+*.pyc
+
 data/boundaries
 data/dem
 data/geojson

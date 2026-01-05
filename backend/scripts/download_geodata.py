@@ -5,10 +5,11 @@
 """
 
 import os
-import requests
-from pathlib import Path
-import zipfile
 import tarfile
+import zipfile
+from pathlib import Path
+
+import requests
 
 # 创建数据目录
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -28,17 +29,17 @@ def download_file(url: str, output_path: Path, chunk_size: int = 8192):
     response = requests.get(url, stream=True)
     response.raise_for_status()
 
-    total_size = int(response.headers.get('content-length', 0))
+    total_size = int(response.headers.get("content-length", 0))
     downloaded = 0
 
-    with open(output_path, 'wb') as f:
+    with open(output_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=chunk_size):
             if chunk:
                 f.write(chunk)
                 downloaded += len(chunk)
                 if total_size:
                     percent = (downloaded / total_size) * 100
-                    print(f"\r进度: {percent:.1f}%", end='')
+                    print(f"\r进度: {percent:.1f}%", end="")
 
     print("\n下载完成！")
     return output_path
@@ -64,9 +65,21 @@ def download_srtm_dem():
     # CGIAR-CSI SRTM 瓦片列表（覆盖东欧-俄罗斯）
     srtm_tiles = [
         # 格式: (纬度, 经度)
-        (50, 20), (50, 25), (50, 30), (50, 35), (50, 40),
-        (55, 20), (55, 25), (55, 30), (55, 35), (55, 40),
-        (60, 20), (60, 25), (60, 30), (60, 35), (60, 40),
+        (50, 20),
+        (50, 25),
+        (50, 30),
+        (50, 35),
+        (50, 40),
+        (55, 20),
+        (55, 25),
+        (55, 30),
+        (55, 35),
+        (55, 40),
+        (60, 20),
+        (60, 25),
+        (60, 30),
+        (60, 35),
+        (60, 40),
     ]
 
     print("\n需要下载的SRTM瓦片（5°x5°网格）:")
@@ -85,7 +98,7 @@ def download_srtm_dem():
 
     # 保存瓦片列表
     tile_list_file = DEM_DIR / "dem_tiles_list.txt"
-    with open(tile_list_file, 'w', encoding='utf-8') as f:
+    with open(tile_list_file, "w", encoding="utf-8") as f:
         f.write("# SRTM DEM瓦片下载列表\n")
         f.write("# 覆盖区域: 北纬50-60°，东经20-45°\n\n")
         for lat, lon in srtm_tiles:
@@ -107,36 +120,36 @@ def download_natural_earth_data():
         {
             "name": "国家边界（1:10m）",
             "url": "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_countries.zip",
-            "file": "ne_10m_admin_0_countries.zip"
+            "file": "ne_10m_admin_0_countries.zip",
         },
         {
             "name": "一级行政区（1:10m）",
             "url": "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_1_states_provinces.zip",
-            "file": "ne_10m_admin_1_states_provinces.zip"
+            "file": "ne_10m_admin_1_states_provinces.zip",
         },
         {
             "name": "主要城市（1:10m）",
             "url": "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_populated_places.zip",
-            "file": "ne_10m_populated_places.zip"
+            "file": "ne_10m_populated_places.zip",
         },
         {
             "name": "河流湖泊（1:10m）",
             "url": "https://naciscdn.org/naturalearth/10m/physical/ne_10m_rivers_lake_centerlines.zip",
-            "file": "ne_10m_rivers_lake_centerlines.zip"
-        }
+            "file": "ne_10m_rivers_lake_centerlines.zip",
+        },
     ]
 
     for dataset in datasets:
         print(f"\n下载: {dataset['name']}")
-        output_path = BOUNDARIES_DIR / dataset['file']
+        output_path = BOUNDARIES_DIR / dataset["file"]
 
         try:
-            download_file(dataset['url'], output_path)
+            download_file(dataset["url"], output_path)
 
             # 解压
             print("正在解压...")
-            with zipfile.ZipFile(output_path, 'r') as zip_ref:
-                extract_dir = BOUNDARIES_DIR / dataset['file'].replace('.zip', '')
+            with zipfile.ZipFile(output_path, "r") as zip_ref:
+                extract_dir = BOUNDARIES_DIR / dataset["file"].replace(".zip", "")
                 extract_dir.mkdir(exist_ok=True)
                 zip_ref.extractall(extract_dir)
             print(f"解压完成: {extract_dir}")
@@ -379,7 +392,7 @@ backend/data/
 **维护者：** 开发者A
 """
 
-    with open(instructions_file, 'w', encoding='utf-8') as f:
+    with open(instructions_file, "w", encoding="utf-8") as f:
         f.write(content)
 
     print(f"\n详细下载说明已保存至: {instructions_file}")
