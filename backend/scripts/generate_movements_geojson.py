@@ -1,4 +1,5 @@
-"""Generate movements.geojson from events.geojson using simple grouping rules.
+"""
+Generate movements.geojson from events.geojson using simple grouping rules.
 
 Creates LineString movements for:
  - `french_grande_armee`: events with `french_troops` or commanded by Napoleon
