@@ -62,6 +62,21 @@ uv run uvicorn src.main:app --reload --port 8000
 - `GET /api/movements` — 返回 `movements.geojson`。
 - `GET /api/territories` — 返回 `territories.geojson`。
 
+投影支持：
+- 所有接口支持可选查询参数 `projection`，允许返回不同坐标参考系：
+  - `wgs84`（默认，EPSG:4326）
+  - `webmercator`（EPSG:3857）
+  - `lambert`（EPSG:3034）
+
+示例：
+```bash
+# 请求 Web Mercator 投影的事件数据
+curl 'http://127.0.0.1:8000/api/events?projection=webmercator'
+
+# 请求 Lambert 投影的领土 GeoJSON
+curl 'http://127.0.0.1:8000/api/territories?projection=lambert'
+```
+
 后续建议
 
 - 若要提高查询性能，可将 GeoJSON 导入 PostGIS 并实现空间索引。

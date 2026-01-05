@@ -4,6 +4,10 @@
   - Query 参数：`start` (YYYY-MM-DD，可选), `end` (YYYY-MM-DD，可选), `projection` (wgs84，预留)
   - 示例：`/api/events?start=1812-09-01&end=1812-10-01`
 
+- **支持投影参数**: 所有主要端点支持 `projection` 查询参数，允许客户端请求不同坐标参考系（默认 `wgs84`）。
+  - 支持值：`wgs84`（EPSG:4326，默认）、`webmercator`（EPSG:3857）、`lambert`（EPSG:3034）。
+  - 示例：`/api/events?projection=webmercator&start=1812-09-01&end=1812-10-01`
+
 - **GET /api/movements**: 返回 `movements.geojson` 的 FeatureCollection（军队行军轨迹）。
   - 无需参数。
   - 示例：`/api/movements`
