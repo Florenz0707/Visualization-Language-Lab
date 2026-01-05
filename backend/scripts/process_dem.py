@@ -11,10 +11,10 @@ DEM数据处理脚本
 6. 投影转换（可选）
 """
 
+import json
 import os
 import subprocess
 from pathlib import Path
-import json
 
 # 路径配置
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -28,12 +28,7 @@ GEOJSON_DIR.mkdir(parents=True, exist_ok=True)
 
 # 项目区域边界（WGS84）
 # 北纬50-60°，东经20-45°
-BBOX = {
-    "west": 20,
-    "south": 50,
-    "east": 45,
-    "north": 60
-}
+BBOX = {"west": 20, "south": 50, "east": 45, "north": 60}
 
 # 关键事件位置（用于局部高精度处理）
 KEY_LOCATIONS = [
@@ -48,8 +43,9 @@ KEY_LOCATIONS = [
 def check_gdal():
     """检查GDAL是否安装"""
     try:
-        result = subprocess.run(["gdalinfo", "--version"],
-                              capture_output=True, text=True, check=True)
+        result = subprocess.run(
+            ["gdalinfo", "--version"], capture_output=True, text=True, check=True
+        )
         print(f"✅ GDAL已安装: {result.stdout.strip()}")
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -120,16 +116,27 @@ def crop_dem(input_file, output_file, bbox):
 
     cmd = [
         "gdalwarp",
-        "-te", str(bbox['west']), str(bbox['south']), str(bbox['east']), str(bbox['north']),
-        "-tr", "0.001", "0.001",  # 约100米分辨率
-        "-r", "bilinear",  # 双线性重采样
-        "-co", "COMPRESS=LZW",
-        "-co", "TILED=YES",
+        "-te",
+        str(bbox["west"]),
+        str(bbox["south"]),
+        str(bbox["east"]),
+        str(bbox["north"]),
+        "-tr",
+        "0.001",
+        "0.001",  # 约100米分辨率
+        "-r",
+        "bilinear",  # 双线性重采样
+        "-co",
+        "COMPRESS=LZW",
+        "-co",
+        "TILED=YES",
         str(input_file),
-        str(output_file)
+        str(output_file),
     ]
 
-    print(f"执行命令: gdalwarp -te {bbox['west']} {bbox['south']} {bbox['east']} {bbox['north']} ...")
+    print(
+        f"执行命令: gdalwarp -te {bbox['west']} {bbox['south']} {bbox['east']} {bbox['north']} ..."
+    )
 
     try:
         subprocess.run(cmd, check=True, capture_output=True)
@@ -153,10 +160,12 @@ def generate_contours(dem_file, output_geojson, interval=100):
 
     cmd_contour = [
         "gdal_contour",
-        "-a", "elevation",
-        "-i", str(interval),
+        "-a",
+        "elevation",
+        "-i",
+        str(interval),
         str(dem_file),
-        str(temp_shp)
+        str(temp_shp),
     ]
 
     print(f"执行命令: gdal_contour -a elevation -i {interval} ...")
@@ -167,12 +176,7 @@ def generate_contours(dem_file, output_geojson, interval=100):
 
         # 转换为GeoJSON
         print("转换为GeoJSON...")
-        cmd_convert = [
-            "ogr2ogr",
-            "-f", "GeoJSON",
-            str(output_geojson),
-            str(temp_shp)
-        ]
+        cmd_convert = ["ogr2ogr", "-f", "GeoJSON", str(output_geojson), str(temp_shp)]
 
         subprocess.run(cmd_convert, check=True, capture_output=True)
 
@@ -197,13 +201,18 @@ def generate_hillshade(dem_file, output_file):
     print("\n步骤4: 生成hillshade...")
 
     cmd = [
-        "gdaldem", "hillshade",
-        "-z", "2",  # 垂直夸张系数
-        "-az", "315",  # 光源方位角
-        "-alt", "45",  # 光源高度角
-        "-co", "COMPRESS=LZW",
+        "gdaldem",
+        "hillshade",
+        "-z",
+        "2",  # 垂直夸张系数
+        "-az",
+        "315",  # 光源方位角
+        "-alt",
+        "45",  # 光源高度角
+        "-co",
+        "COMPRESS=LZW",
         str(dem_file),
-        str(output_file)
+        str(output_file),
     ]
 
     print("执行命令: gdaldem hillshade -z 2 -az 315 -alt 45 ...")
@@ -228,11 +237,14 @@ def generate_heightmap(dem_file, output_png, width=2048):
 
     cmd = [
         "gdal_translate",
-        "-of", "PNG",
-        "-outsize", str(width), str(height),
+        "-of",
+        "PNG",
+        "-outsize",
+        str(width),
+        str(height),
         "-scale",  # 自动缩放到0-255
         str(dem_file),
-        str(output_png)
+        str(output_png),
     ]
 
     print(f"执行命令: gdal_translate -of PNG -outsize {width} {height} ...")
@@ -254,11 +266,14 @@ def reproject_dem(input_file, output_file, target_epsg="EPSG:3034"):
 
     cmd = [
         "gdalwarp",
-        "-t_srs", target_epsg,
-        "-r", "bilinear",
-        "-co", "COMPRESS=LZW",
+        "-t_srs",
+        target_epsg,
+        "-r",
+        "bilinear",
+        "-co",
+        "COMPRESS=LZW",
         str(input_file),
-        str(output_file)
+        str(output_file),
     ]
 
     print(f"执行命令: gdalwarp -t_srs {target_epsg} ...")
@@ -286,8 +301,18 @@ def get_dem_statistics(dem_file):
 
         # 提取关键信息
         print("DEM统计:")
-        for line in output.split('\n'):
-            if any(key in line for key in ['Size', 'Origin', 'Pixel Size', 'Minimum', 'Maximum', 'Mean']):
+        for line in output.split("\n"):
+            if any(
+                key in line
+                for key in [
+                    "Size",
+                    "Origin",
+                    "Pixel Size",
+                    "Minimum",
+                    "Maximum",
+                    "Mean",
+                ]
+            ):
                 print(f"  {line.strip()}")
 
         return True
@@ -305,10 +330,10 @@ def create_processing_summary():
         "date_processed": "2025-12-29",
         "source": "JAXA AW3D30",
         "region": {
-            "west": BBOX['west'],
-            "south": BBOX['south'],
-            "east": BBOX['east'],
-            "north": BBOX['north']
+            "west": BBOX["west"],
+            "south": BBOX["south"],
+            "east": BBOX["east"],
+            "north": BBOX["north"],
         },
         "resolution": "~100m",
         "coordinate_system": "WGS84 (EPSG:4326)",
@@ -317,13 +342,13 @@ def create_processing_summary():
             "hillshade": "hillshade.tif",
             "heightmap": "heightmap_2048.png",
             "contours": "contours.geojson",
-            "projected_dem": "merged_dem_lambert.tif"
+            "projected_dem": "merged_dem_lambert.tif",
         },
-        "key_locations": KEY_LOCATIONS
+        "key_locations": KEY_LOCATIONS,
     }
 
     summary_file = DEM_OUTPUT_DIR / "processing_summary.json"
-    with open(summary_file, 'w', encoding='utf-8') as f:
+    with open(summary_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
     print(f"✅ 摘要保存: {summary_file.name}")
@@ -359,7 +384,7 @@ def main():
     print("=" * 70)
 
     confirm = input("\n继续处理? (y/n): ").strip().lower()
-    if confirm != 'y':
+    if confirm != "y":
         print("取消处理")
         return
 
@@ -402,7 +427,7 @@ def main():
 
     # 投影转换（可选）
     do_reproject = input("\n是否进行投影转换到Lambert? (y/n): ").strip().lower()
-    if do_reproject == 'y':
+    if do_reproject == "y":
         if reproject_dem(cropped_dem, lambert_dem):
             success_count += 1
 

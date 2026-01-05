@@ -3,10 +3,11 @@ JAXA AW3D30 DEM数据自动下载脚本
 用于1812年拿破仑东征项目
 """
 
-import requests
 import os
-from pathlib import Path
 import time
+from pathlib import Path
+
+import requests
 
 # 数据保存目录
 DEM_DIR = Path(__file__).parent.parent / "data" / "dem" / "jaxa_aw3d30"
@@ -17,18 +18,9 @@ BASE_URL = "https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2404/"
 
 # 覆盖区域：北纬50-60°，东经20-45°
 # AW3D30瓦片为5°x5°
-LAT_RANGES = [
-    (50, 55),
-    (55, 60)
-]
+LAT_RANGES = [(50, 55), (55, 60)]
 
-LON_RANGES = [
-    (20, 25),
-    (25, 30),
-    (30, 35),
-    (35, 40),
-    (40, 45)
-]
+LON_RANGES = [(20, 25), (25, 30), (30, 35), (35, 40), (40, 45)]
 
 
 def generate_tile_name(lat1: int, lat2: int, lon1: int, lon2: int) -> str:
@@ -65,11 +57,11 @@ def download_file(url: str, output_path: Path, timeout: int = 300) -> bool:
         response.raise_for_status()
 
         # 获取文件大小
-        total_size = int(response.headers.get('content-length', 0))
+        total_size = int(response.headers.get("content-length", 0))
         downloaded = 0
 
         # 写入文件
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
@@ -80,7 +72,10 @@ def download_file(url: str, output_path: Path, timeout: int = 300) -> bool:
                         percent = (downloaded / total_size) * 100
                         mb_downloaded = downloaded / 1024 / 1024
                         mb_total = total_size / 1024 / 1024
-                        print(f"\r进度: {percent:.1f}% ({mb_downloaded:.1f}/{mb_total:.1f} MB)", end='')
+                        print(
+                            f"\r进度: {percent:.1f}% ({mb_downloaded:.1f}/{mb_total:.1f} MB)",
+                            end="",
+                        )
 
         print(f"\n✅ 下载完成: {output_path.name}")
         return True
@@ -124,22 +119,26 @@ def download_all_tiles(skip_existing: bool = True, delay: float = 1.0):
             url = BASE_URL + tile_name
             output_path = DEM_DIR / tile_name
 
-            tiles.append({
-                'name': tile_name,
-                'url': url,
-                'path': output_path,
-                'lat': f"{lat1}-{lat2}°N",
-                'lon': f"{lon1}-{lon2}°E"
-            })
+            tiles.append(
+                {
+                    "name": tile_name,
+                    "url": url,
+                    "path": output_path,
+                    "lat": f"{lat1}-{lat2}°N",
+                    "lon": f"{lon1}-{lon2}°E",
+                }
+            )
 
     print(f"\n共需下载 {len(tiles)} 个瓦片:")
     print("-" * 70)
     for i, tile in enumerate(tiles, 1):
-        status = "✓ 已存在" if tile['path'].exists() else "⬇ 待下载"
-        print(f"{i:2d}. {tile['name']:30s} | {tile['lat']:12s} | {tile['lon']:12s} | {status}")
+        status = "✓ 已存在" if tile["path"].exists() else "⬇ 待下载"
+        print(
+            f"{i:2d}. {tile['name']:30s} | {tile['lat']:12s} | {tile['lon']:12s} | {status}"
+        )
 
     # 统计
-    existing = sum(1 for t in tiles if t['path'].exists())
+    existing = sum(1 for t in tiles if t["path"].exists())
     to_download = len(tiles) - existing
 
     print("-" * 70)
@@ -157,7 +156,7 @@ def download_all_tiles(skip_existing: bool = True, delay: float = 1.0):
     print("\n" + "=" * 70)
     confirm = input("确认开始下载? (y/n): ").strip().lower()
 
-    if confirm != 'y':
+    if confirm != "y":
         print("取消下载")
         return
 
@@ -171,17 +170,17 @@ def download_all_tiles(skip_existing: bool = True, delay: float = 1.0):
 
     for i, tile in enumerate(tiles, 1):
         # 跳过已存在的文件
-        if skip_existing and tile['path'].exists():
+        if skip_existing and tile["path"].exists():
             print(f"\n[{i}/{len(tiles)}] ⏭️  跳过已存在: {tile['name']}")
             continue
 
         print(f"\n[{i}/{len(tiles)}]")
 
         # 下载文件
-        if download_file(tile['url'], tile['path']):
+        if download_file(tile["url"], tile["path"]):
             success_count += 1
         else:
-            failed_tiles.append(tile['name'])
+            failed_tiles.append(tile["name"])
 
         # 延迟，避免服务器压力
         if i < len(tiles):
@@ -228,7 +227,7 @@ def download_key_tiles():
 
     confirm = input("\n确认下载? (y/n): ").strip().lower()
 
-    if confirm != 'y':
+    if confirm != "y":
         print("取消下载")
         return
 

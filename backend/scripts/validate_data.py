@@ -5,10 +5,9 @@
 """
 
 import json
+import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
-import sys
-
 
 # 目录配置
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -22,13 +21,11 @@ class DataValidator:
     """数据验证器"""
 
     def __init__(self):
-        self.results = {
-            'passed': [],
-            'failed': [],
-            'warnings': []
-        }
+        self.results = {"passed": [], "failed": [], "warnings": []}
 
-    def check_geojson_file(self, filepath: Path, name: str, required: bool = True) -> bool:
+    def check_geojson_file(
+        self, filepath: Path, name: str, required: bool = True
+    ) -> bool:
         """
         验证GeoJSON文件
 
@@ -43,28 +40,28 @@ class DataValidator:
         if not filepath.exists():
             msg = f"{name}: 文件不存在 ({filepath.name})"
             if required:
-                self.results['failed'].append(msg)
+                self.results["failed"].append(msg)
                 print(f"❌ {msg}")
                 return False
             else:
-                self.results['warnings'].append(msg)
+                self.results["warnings"].append(msg)
                 print(f"⚠️  {msg}")
                 return False
 
         try:
             # 读取GeoJSON
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             # 检查基本结构
-            if data.get('type') not in ['FeatureCollection', 'Feature']:
-                self.results['failed'].append(f"{name}: 无效的GeoJSON类型")
+            if data.get("type") not in ["FeatureCollection", "Feature"]:
+                self.results["failed"].append(f"{name}: 无效的GeoJSON类型")
                 print(f"❌ {name}: 无效的GeoJSON类型")
                 return False
 
             # 获取特征数量
-            if data['type'] == 'FeatureCollection':
-                feature_count = len(data.get('features', []))
+            if data["type"] == "FeatureCollection":
+                feature_count = len(data.get("features", []))
             else:
                 feature_count = 1
 
@@ -72,18 +69,18 @@ class DataValidator:
             size_mb = filepath.stat().st_size / (1024 * 1024)
 
             msg = f"{name}: {filepath.name} ({feature_count} 个特征, {size_mb:.2f} MB)"
-            self.results['passed'].append(msg)
+            self.results["passed"].append(msg)
             print(f"✅ {msg}")
             return True
 
         except json.JSONDecodeError as e:
             msg = f"{name}: JSON格式错误 - {str(e)}"
-            self.results['failed'].append(msg)
+            self.results["failed"].append(msg)
             print(f"❌ {msg}")
             return False
         except Exception as e:
             msg = f"{name}: 验证出错 - {str(e)}"
-            self.results['failed'].append(msg)
+            self.results["failed"].append(msg)
             print(f"❌ {msg}")
             return False
 
@@ -100,7 +97,7 @@ class DataValidator:
         """
         if not directory.exists():
             msg = f"{name}: 目录不存在"
-            self.results['warnings'].append(msg)
+            self.results["warnings"].append(msg)
             print(f"⚠️  {msg}")
             return False
 
@@ -109,14 +106,14 @@ class DataValidator:
 
         if not shp_files:
             msg = f"{name}: 未找到Shapefile"
-            self.results['warnings'].append(msg)
+            self.results["warnings"].append(msg)
             print(f"⚠️  {msg}")
             return False
 
         # 检查关键文件
         shp_file = shp_files[0]
         stem = shp_file.stem
-        required_extensions = ['.shp', '.shx', '.dbf']
+        required_extensions = [".shp", ".shx", ".dbf"]
 
         missing = []
         for ext in required_extensions:
@@ -125,7 +122,7 @@ class DataValidator:
 
         if missing:
             msg = f"{name}: 缺少文件 {', '.join(missing)}"
-            self.results['failed'].append(msg)
+            self.results["failed"].append(msg)
             print(f"❌ {msg}")
             return False
 
@@ -134,7 +131,7 @@ class DataValidator:
         size_mb = total_size / (1024 * 1024)
 
         msg = f"{name}: {directory.name} ({size_mb:.2f} MB)"
-        self.results['passed'].append(msg)
+        self.results["passed"].append(msg)
         print(f"✅ {msg}")
         return True
 
@@ -149,7 +146,7 @@ class DataValidator:
 
         if not jaxa_dir.exists():
             msg = "DEM数据: jaxa_aw3d30目录不存在"
-            self.results['warnings'].append(msg)
+            self.results["warnings"].append(msg)
             print(f"⚠️  {msg}")
             return 0, 0.0
 
@@ -158,7 +155,7 @@ class DataValidator:
 
         if not tif_files:
             msg = "DEM数据: 未找到TIFF文件"
-            self.results['warnings'].append(msg)
+            self.results["warnings"].append(msg)
             print(f"⚠️  {msg}")
             return 0, 0.0
 
@@ -174,7 +171,7 @@ class DataValidator:
             msg += f", {len(zip_files)} 个ZIP文件"
         msg += f" ({size_mb:.2f} MB)"
 
-        self.results['passed'].append(msg)
+        self.results["passed"].append(msg)
         print(f"✅ {msg}")
         return len(tif_files), size_mb
 
@@ -184,15 +181,15 @@ class DataValidator:
 
         if not processed_dir.exists():
             msg = "处理后DEM: 目录不存在（可选）"
-            self.results['warnings'].append(msg)
+            self.results["warnings"].append(msg)
             print(f"⚠️  {msg}")
             return False
 
         # 检查关键文件
         files_to_check = {
-            'merged_dem.tif': '合并的DEM',
-            'heightmap.png': '高程贴图',
-            'hillshade.tif': '山体阴影'
+            "merged_dem.tif": "合并的DEM",
+            "heightmap.png": "高程贴图",
+            "hillshade.tif": "山体阴影",
         }
 
         found_files = []
@@ -204,12 +201,12 @@ class DataValidator:
 
         if found_files:
             msg = f"处理后DEM: {', '.join(found_files)}"
-            self.results['passed'].append(msg)
+            self.results["passed"].append(msg)
             print(f"✅ {msg}")
             return True
         else:
             msg = "处理后DEM: 未找到处理文件（可选）"
-            self.results['warnings'].append(msg)
+            self.results["warnings"].append(msg)
             print(f"⚠️  {msg}")
             return False
 
@@ -217,7 +214,7 @@ class DataValidator:
         """检查历史地图"""
         if not MAPS_DIR.exists():
             msg = "历史地图: 目录不存在"
-            self.results['warnings'].append(msg)
+            self.results["warnings"].append(msg)
             print(f"⚠️  {msg}")
             return False
 
@@ -226,12 +223,12 @@ class DataValidator:
         if minard_path.exists():
             size_mb = minard_path.stat().st_size / (1024 * 1024)
             msg = f"历史地图: Minard.png ({size_mb:.2f} MB)"
-            self.results['passed'].append(msg)
+            self.results["passed"].append(msg)
             print(f"✅ {msg}")
             return True
         else:
             msg = "历史地图: Minard.png 未找到"
-            self.results['warnings'].append(msg)
+            self.results["warnings"].append(msg)
             print(f"⚠️  {msg}")
             return False
 
@@ -245,10 +242,10 @@ def print_section_header(title: str):
 
 def main():
     """主函数"""
-    print("="*60)
+    print("=" * 60)
     print("数据完整性验证")
     print("1812拿破仑东征地理可视化项目")
-    print("="*60)
+    print("=" * 60)
 
     validator = DataValidator()
 
@@ -302,27 +299,27 @@ def main():
     # 5. 总结报告
     print_section_header("📊 验证总结")
 
-    passed_count = len(validator.results['passed'])
-    failed_count = len(validator.results['failed'])
-    warning_count = len(validator.results['warnings'])
+    passed_count = len(validator.results["passed"])
+    failed_count = len(validator.results["failed"])
+    warning_count = len(validator.results["warnings"])
 
     print(f"✅ 通过: {passed_count} 项")
     print(f"❌ 失败: {failed_count} 项")
     print(f"⚠️  警告: {warning_count} 项")
 
     # 详细列表
-    if validator.results['failed']:
+    if validator.results["failed"]:
         print("\n❌ 失败项目:")
-        for msg in validator.results['failed']:
+        for msg in validator.results["failed"]:
             print(f"   - {msg}")
 
-    if validator.results['warnings']:
+    if validator.results["warnings"]:
         print("\n⚠️  警告项目:")
-        for msg in validator.results['warnings']:
+        for msg in validator.results["warnings"]:
             print(f"   - {msg}")
 
     # 项目就绪状态
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
 
     # 检查必需文件
     required_files = [
@@ -357,7 +354,7 @@ def main():
         print("  4. 创建 movements.geojson 军队移动轨迹")
         return_code = 2
 
-    print("="*60)
+    print("=" * 60)
 
     sys.exit(return_code)
 

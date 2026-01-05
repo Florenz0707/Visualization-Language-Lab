@@ -6,9 +6,8 @@ Shapefile到GeoJSON转换脚本
 
 import os
 import subprocess
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 # 目录配置
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -23,28 +22,36 @@ GEOJSON_DIR.mkdir(parents=True, exist_ok=True)
 CONVERSION_TASKS = [
     {
         "name": "国家边界",
-        "source": BOUNDARIES_DIR / "ne_10m_admin_0_countries" / "ne_10m_admin_0_countries.shp",
+        "source": BOUNDARIES_DIR
+        / "ne_10m_admin_0_countries"
+        / "ne_10m_admin_0_countries.shp",
         "target": GEOJSON_DIR / "countries.geojson",
-        "description": "世界各国边界数据"
+        "description": "世界各国边界数据",
     },
     {
         "name": "省份边界",
-        "source": BOUNDARIES_DIR / "ne_10m_admin_1_states_provinces" / "ne_10m_admin_1_states_provinces.shp",
+        "source": BOUNDARIES_DIR
+        / "ne_10m_admin_1_states_provinces"
+        / "ne_10m_admin_1_states_provinces.shp",
         "target": GEOJSON_DIR / "provinces.geojson",
-        "description": "一级行政区划边界"
+        "description": "一级行政区划边界",
     },
     {
         "name": "主要城市",
-        "source": BOUNDARIES_DIR / "ne_10m_populated_places" / "ne_10m_populated_places.shp",
+        "source": BOUNDARIES_DIR
+        / "ne_10m_populated_places"
+        / "ne_10m_populated_places.shp",
         "target": GEOJSON_DIR / "cities.geojson",
-        "description": "世界主要城市点位"
+        "description": "世界主要城市点位",
     },
     {
         "name": "河流湖泊",
-        "source": BOUNDARIES_DIR / "ne_10m_rivers_lake_centerlines" / "ne_10m_rivers_lake_centerlines.shp",
+        "source": BOUNDARIES_DIR
+        / "ne_10m_rivers_lake_centerlines"
+        / "ne_10m_rivers_lake_centerlines.shp",
         "target": GEOJSON_DIR / "rivers.geojson",
-        "description": "河流和湖泊中心线"
-    }
+        "description": "河流和湖泊中心线",
+    },
 ]
 
 
@@ -52,9 +59,7 @@ def check_ogr2ogr():
     """检查ogr2ogr是否已安装"""
     try:
         result = subprocess.run(
-            ["ogr2ogr", "--version"],
-            capture_output=True,
-            text=True
+            ["ogr2ogr", "--version"], capture_output=True, text=True
         )
         if result.returncode == 0:
             print(f"✅ 检测到GDAL/OGR: {result.stdout.strip()}")
@@ -101,19 +106,17 @@ def convert_shapefile(source: Path, target: Path, name: str, description: str) -
         # 构建ogr2ogr命令
         cmd = [
             "ogr2ogr",
-            "-f", "GeoJSON",           # 输出格式
-            "-t_srs", "EPSG:4326",     # 目标坐标系（WGS84）
-            "-progress",               # 显示进度
-            str(target),               # 输出文件
-            str(source)                # 输入文件
+            "-f",
+            "GeoJSON",  # 输出格式
+            "-t_srs",
+            "EPSG:4326",  # 目标坐标系（WGS84）
+            "-progress",  # 显示进度
+            str(target),  # 输出文件
+            str(source),  # 输入文件
         ]
 
         # 执行转换
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode == 0:
             # 获取文件大小
@@ -152,11 +155,14 @@ def convert_with_filter(source: Path, target: Path, name: str, where_clause: str
     try:
         cmd = [
             "ogr2ogr",
-            "-f", "GeoJSON",
-            "-t_srs", "EPSG:4326",
-            "-where", where_clause,
+            "-f",
+            "GeoJSON",
+            "-t_srs",
+            "EPSG:4326",
+            "-where",
+            where_clause,
             str(target),
-            str(source)
+            str(source),
         ]
 
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -179,17 +185,27 @@ def create_filtered_datasets():
     创建过滤后的专用数据集（可选）
     例如：仅东欧地区、仅大城市等
     """
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("创建过滤数据集（可选）")
-    print("="*60)
+    print("=" * 60)
 
     # 1. 仅东欧国家（用于1812项目）
-    countries_src = BOUNDARIES_DIR / "ne_10m_admin_0_countries" / "ne_10m_admin_0_countries.shp"
+    countries_src = (
+        BOUNDARIES_DIR / "ne_10m_admin_0_countries" / "ne_10m_admin_0_countries.shp"
+    )
     if countries_src.exists():
         # 东欧相关国家
         eastern_europe = [
-            'Russia', 'Poland', 'Lithuania', 'Belarus', 'Ukraine',
-            'Latvia', 'Estonia', 'Germany', 'Austria', 'France'
+            "Russia",
+            "Poland",
+            "Lithuania",
+            "Belarus",
+            "Ukraine",
+            "Latvia",
+            "Estonia",
+            "Germany",
+            "Austria",
+            "France",
         ]
         where = "NAME IN ('" + "','".join(eastern_europe) + "')"
 
@@ -197,24 +213,33 @@ def create_filtered_datasets():
             countries_src,
             GEOJSON_DIR / "countries_eastern_europe.geojson",
             "东欧国家",
-            where
+            where,
         )
 
     # 2. 仅大城市（人口>100万）
-    cities_src = BOUNDARIES_DIR / "ne_10m_populated_places" / "ne_10m_populated_places.shp"
+    cities_src = (
+        BOUNDARIES_DIR / "ne_10m_populated_places" / "ne_10m_populated_places.shp"
+    )
     if cities_src.exists():
         convert_with_filter(
             cities_src,
             GEOJSON_DIR / "cities_major.geojson",
             "主要大城市",
-            "POP_MAX > 1000000"
+            "POP_MAX > 1000000",
         )
 
     # 3. 历史相关城市（1812东征路线）
     if cities_src.exists():
         historical_cities = [
-            'Moscow', 'Vilnius', 'Minsk', 'Smolensk', 'Warsaw',
-            'Kaunas', 'Vitebsk', 'Borodino', 'Maloyaroslavets'
+            "Moscow",
+            "Vilnius",
+            "Minsk",
+            "Smolensk",
+            "Warsaw",
+            "Kaunas",
+            "Vitebsk",
+            "Borodino",
+            "Maloyaroslavets",
         ]
         where = "NAME IN ('" + "','".join(historical_cities) + "')"
 
@@ -222,16 +247,16 @@ def create_filtered_datasets():
             cities_src,
             GEOJSON_DIR / "cities_1812_campaign.geojson",
             "1812东征相关城市",
-            where
+            where,
         )
 
 
 def main():
     """主函数"""
-    print("="*60)
+    print("=" * 60)
     print("Shapefile到GeoJSON转换工具")
     print("Natural Earth数据转换")
-    print("="*60)
+    print("=" * 60)
 
     # 检查工具
     if not check_ogr2ogr():
@@ -245,10 +270,7 @@ def main():
     for task in CONVERSION_TASKS:
         if task["source"].exists():
             result = convert_shapefile(
-                task["source"],
-                task["target"],
-                task["name"],
-                task["description"]
+                task["source"], task["target"], task["name"], task["description"]
             )
             if result:
                 success_count += 1
@@ -259,14 +281,14 @@ def main():
             print(f"\n⚠️  跳过 {task['name']}: 源文件不存在")
 
     # 可选：创建过滤数据集
-    print("\n是否创建过滤数据集？(y/n): ", end='')
-    if input().lower().strip() == 'y':
+    print("\n是否创建过滤数据集？(y/n): ", end="")
+    if input().lower().strip() == "y":
         create_filtered_datasets()
 
     # 总结
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("转换完成！")
-    print("="*60)
+    print("=" * 60)
     print(f"✅ 成功: {success_count}")
     print(f"❌ 失败: {fail_count}")
     print(f"⚠️  跳过: {skip_count}")
