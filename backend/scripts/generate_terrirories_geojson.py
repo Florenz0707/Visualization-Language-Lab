@@ -27,7 +27,7 @@ def parse_date(s):
         return None
 
 
-def main():
+def main(metadata_out: str | None = None):
     # read raw geojson to preserve original 'properties' dicts
     with open(IN, "r", encoding="utf-8") as fh:
         raw = json.load(fh)
@@ -80,6 +80,37 @@ def main():
     out_gdf.to_file(OUT, driver="GeoJSON")
     print("Wrote", OUT)
 
+    # optional provenance metadata
+    if metadata_out:
+        try:
+            import provenance
+
+            provenance.write_provenance(
+                metadata_out,
+                generated_by="scripts/generate_terrirories_geojson.py",
+                source_files=[str(IN)],
+                processing_steps=[
+                    "read events.geojson",
+                    "buffer by km",
+                    "dissolve by faction",
+                    "reproject to WGS84",
+                    "save territories.geojson",
+                ],
+            )
+            print(f"Wrote provenance metadata to {metadata_out}")
+        except Exception as e:
+            print(f"Warning: failed to write provenance metadata: {e}")
+
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate territories.geojson from events.geojson"
+    )
+    parser.add_argument(
+        "--metadata-out", help="Path to write provenance JSON", default=None
+    )
+    args = parser.parse_args()
+
+    main(metadata_out=args.metadata_out)

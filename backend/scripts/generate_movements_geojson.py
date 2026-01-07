@@ -9,6 +9,7 @@ Run with: `uv run python scripts/generate_movements_geojson.py`
 """
 from __future__ import annotations
 
+import argparse
 import json
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +19,28 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data" / "geojson"
 EVENTS_PATH = DATA_DIR / "events.geojson"
 OUT_PATH = DATA_DIR / "movements.geojson"
+
+
+def _write_provenance_if_requested(metadata_out: str | None):
+    if not metadata_out:
+        return
+    try:
+        import provenance
+
+        provenance.write_provenance(
+            metadata_out,
+            generated_by="scripts/generate_movements_geojson.py",
+            source_files=[str(EVENTS_PATH)],
+            processing_steps=[
+                "load events",
+                "group by heuristics",
+                "build LineString movements",
+                "save movements.geojson",
+            ],
+        )
+        print(f"Wrote provenance metadata to {metadata_out}")
+    except Exception as e:
+        print(f"Warning: failed to write provenance metadata: {e}")
 
 
 def load_events() -> Dict[str, Any]:
@@ -100,10 +123,19 @@ def main() -> int:
 
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
-
     print(f"Wrote movements to {OUT_PATH} ({len(movement_features)} features)")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    parser = argparse.ArgumentParser(description="Generate movements.geojson")
+    parser.add_argument(
+        "--metadata-out", help="Path to write provenance JSON", default=None
+    )
+    args = parser.parse_args()
+
+    rc = main()
+    # attempt to write provenance metadata after successful run
+    if rc == 0 and args.metadata_out:
+        _write_provenance_if_requested(args.metadata_out)
+    raise SystemExit(rc)

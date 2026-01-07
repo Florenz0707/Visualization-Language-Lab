@@ -11,6 +11,7 @@ DEM数据处理脚本
 6. 投影转换（可选）
 """
 
+import argparse
 import json
 import os
 import subprocess
@@ -354,7 +355,7 @@ def create_processing_summary():
     print(f"✅ 摘要保存: {summary_file.name}")
 
 
-def main():
+def main(metadata_out: str | None = None, auto_confirm: bool = False):
     print("=" * 70)
     print("DEM数据处理工具")
     print("1812拿破仑东征项目")
@@ -383,10 +384,13 @@ def main():
     print("8. 创建处理摘要")
     print("=" * 70)
 
-    confirm = input("\n继续处理? (y/n): ").strip().lower()
-    if confirm != "y":
-        print("取消处理")
-        return
+    if not auto_confirm:
+        confirm = input("\n继续处理? (y/n): ").strip().lower()
+        if confirm != "y":
+            print("取消处理")
+            return
+    else:
+        print("自动模式: 跳过交互提示，继续处理")
 
     print("\n" + "=" * 70)
     print("开始处理...")
@@ -426,7 +430,11 @@ def main():
         success_count += 1
 
     # 投影转换（可选）
-    do_reproject = input("\n是否进行投影转换到Lambert? (y/n): ").strip().lower()
+    if auto_confirm:
+        do_reproject = "n"
+    else:
+        do_reproject = input("\n是否进行投影转换到Lambert? (y/n): ").strip().lower()
+
     if do_reproject == "y":
         if reproject_dem(cropped_dem, lambert_dem):
             success_count += 1
@@ -436,6 +444,36 @@ def main():
 
     # 创建摘要
     create_processing_summary()
+
+    # optional provenance metadata
+    if metadata_out:
+        try:
+            import provenance
+
+            provenance.write_provenance(
+                metadata_out,
+                generated_by="scripts/process_dem.py",
+                source_files=[str(p) for p in dem_files],
+                processing_steps=[
+                    "gdalbuildvrt",
+                    "gdalwarp crop",
+                    "gdal_contour -> ogr2ogr",
+                    "gdaldem hillshade",
+                    "gdal_translate heightmap",
+                ],
+                extra={
+                    "outputs": [
+                        str(vrt_file),
+                        str(cropped_dem),
+                        str(contours_file),
+                        str(hillshade_file),
+                        str(heightmap_file),
+                    ]
+                },
+            )
+            print(f"Wrote provenance metadata to {metadata_out}")
+        except Exception as e:
+            print(f"Warning: failed to write provenance metadata: {e}")
 
     print("\n" + "=" * 70)
     print("处理完成!")
@@ -457,4 +495,18 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Process DEM tiles and generate contours/heightmap"
+    )
+    parser.add_argument(
+        "--metadata-out", help="Path to write provenance JSON", default=None
+    )
+    parser.add_argument(
+        "--yes",
+        "-y",
+        help="Run non-interactively (assume defaults)",
+        action="store_true",
+    )
+    args = parser.parse_args()
+
+    main(metadata_out=args.metadata_out, auto_confirm=args.yes)
