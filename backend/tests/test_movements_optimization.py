@@ -11,9 +11,14 @@ def test_movements_simplify_and_bundling():
     j = r.json()
     assert "features" in j
     assert isinstance(j.get("features"), list)
-    # bundling key should be present
+    # bundling key should be present and aggregated (dict by unit)
     assert "bundling" in j
-    assert isinstance(j.get("bundling"), list)
+    bund = j.get("bundling")
+    assert isinstance(bund, dict)
+    # if bundling has entries, each entry should have aggregated metrics
+    for unit, meta in bund.items():
+        assert "weight" in meta and "count" in meta
+        assert "start" in meta and "end" in meta and "angle" in meta
 
 
 def test_movements_grouping():

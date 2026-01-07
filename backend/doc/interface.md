@@ -9,6 +9,7 @@
     - `projection` (可选, 默认 `wgs84`) — 支持 `wgs84`,`webmercator`,`lambert`
     - `simplify` (bool, 默认 `false`) — 是否对路径应用简化
     - `tolerance` (float, 默认 `0.01`) — 简化容差（坐标单位）
+    - `lod` (int, 可选) — 请求预计算的 LOD 等级（1..3）；服务将尝试加载 `movements_lod_{lod}.geojson`，若不存在将使用 LOD->容差映射即时简化
     - `group` (bool, 默认 `false`) — 是否按 `unit` 字段分组并在响应中返回 `groups`
     - `bundling` (bool, 默认 `false`) — 是否在响应中包含 `bundling` 预计算数据（start/end, vector, angle, weight）
   - 示例：`/api/movements?simplify=true&tolerance=0.005&bundling=true`
