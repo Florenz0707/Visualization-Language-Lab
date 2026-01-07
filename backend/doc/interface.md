@@ -5,8 +5,13 @@
   - 示例：`/api/events?start=1812-09-01&end=1812-10-01`
 
 - **GET /api/movements**: 返回 `movements.geojson` 的 FeatureCollection（军队行军轨迹）。
-  - 无需参数。
-  - 示例：`/api/movements`
+  - 可选 Query 参数：
+    - `projection` (可选, 默认 `wgs84`) — 支持 `wgs84`,`webmercator`,`lambert`
+    - `simplify` (bool, 默认 `false`) — 是否对路径应用简化
+    - `tolerance` (float, 默认 `0.01`) — 简化容差（坐标单位）
+    - `group` (bool, 默认 `false`) — 是否按 `unit` 字段分组并在响应中返回 `groups`
+    - `bundling` (bool, 默认 `false`) — 是否在响应中包含 `bundling` 预计算数据（start/end, vector, angle, weight）
+  - 示例：`/api/movements?simplify=true&tolerance=0.005&bundling=true`
 
 - **GET /api/territories**: 返回 `territories.geojson` 的 FeatureCollection（按事件缓冲合并的控制区）。
   - Query 参数：`projection` (可选, 默认 `wgs84`) — 支持值：`wgs84`（EPSG:4326）、`webmercator`（EPSG:3857）、`lambert`（EPSG:3034）。
