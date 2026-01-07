@@ -52,8 +52,22 @@ uv run python scripts/process_dem.py
 
 4. 启动开发服务器（FastAPI + Uvicorn）：
 
+方式 A — 直接使用 `uvicorn`：
+
 ```bash
 uv run uvicorn src.main:app --reload --port 8000
+```
+
+方式 B — 使用仓库内的 `run_server.py`（推荐）：
+
+`run_server.py` 会读取环境变量 `HOST`/`PORT`/`RELOAD` 并以相同参数启动 Uvicorn：
+
+```bash
+# 使用默认（127.0.0.1:8000）
+uv run python run_server.py
+
+# 在不同主机/端口运行并启用自动重载
+HOST=0.0.0.0 PORT=8080 RELOAD=1 uv run python run_server.py
 ```
 
 5. 常用接口（基础）：
