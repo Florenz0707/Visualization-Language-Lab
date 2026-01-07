@@ -1,4 +1,36 @@
 import os
+from pathlib import Path
+
+from loguru import logger
+
+
+def _load_dotenv_from_repo_root() -> None:
+    """Best-effort load of a .env file from the repository root into os.environ.
+
+    Does not overwrite existing environment variables.
+    """
+    try:
+        here = Path(__file__).resolve().parent
+        repo_root = here.parent
+        dotenv = repo_root / ".env"
+        if not dotenv.exists():
+            return
+        for raw in dotenv.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k = k.strip()
+            v = v.strip().strip('"').strip("'")
+            os.environ.setdefault(k, v)
+            logger.debug(f"Set Env : ({k} -> {v})")
+    except Exception:
+        return
+
+
+_load_dotenv_from_repo_root()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +44,7 @@ app = FastAPI(title="1812 Visualization Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -22,7 +54,8 @@ try:
     gzip_min = int(os.getenv("GZIP_MIN_SIZE", "1000"))
 except Exception:
     gzip_min = 1000
-app.add_middleware(GZipMiddleware, minimum_size=gzip_min)
+finally:
+    app.add_middleware(GZipMiddleware, minimum_size=gzip_min)
 
 app.include_router(events_router, prefix="/api")
 app.include_router(movements_router, prefix="/api")

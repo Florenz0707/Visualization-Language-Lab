@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -9,6 +10,10 @@ router = APIRouter()
 @router.get("/territories")
 async def get_territories(projection: Optional[str] = Query("wgs84")) -> Dict[str, Any]:
     """Return territories FeatureCollection. Supports projection query param."""
+    # In LIGHTWEIGHT_MODE we avoid loading large GeoJSON files and return
+    # an empty FeatureCollection to speed up tests.
+    if os.getenv("LIGHTWEIGHT_MODE", "0") == "1":
+        return {"type": "FeatureCollection", "features": []}
     try:
         if projection == "wgs84":
             gj = load_geojson("territories.geojson")
