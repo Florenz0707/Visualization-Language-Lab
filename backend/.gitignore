@@ -2,9 +2,12 @@
 
 __pycache__/
 *.pyc
+.pytest_cache/
 
 data/boundaries
 data/dem
 data/geojson
+
+tests/output/
 
 .env
