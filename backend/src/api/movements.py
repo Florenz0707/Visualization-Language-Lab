@@ -19,6 +19,7 @@ async def get_movements(
     tolerance: float = Query(0.01),
     group: bool = Query(False),
     bundling: bool = Query(False),
+    lod: Optional[int] = Query(None),
 ) -> Dict[str, Any]:
     """Return movements FeatureCollection.
 
@@ -36,19 +37,45 @@ async def get_movements(
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    # optionally simplify geometries
-    if simplify:
-        for f in gj.get("features", []):
-            geom = f.get("geometry")
-            if not geom:
-                continue
-            try:
-                line = shape(geom)
-                if isinstance(line, LineString):
-                    simp = simplify_path(line, tolerance)
-                    f["geometry"] = simp.__geo_interface__
-            except Exception:
-                continue
+    # handle LOD: if lod provided, try to load precomputed file, otherwise
+    # fallback to using a tolerance mapping and simplify on-the-fly
+    LOD_TOLERANCES = {1: 0.0001, 2: 0.001, 3: 0.01}
+    if lod is not None:
+        try:
+            fname = f"movements_lod_{lod}.geojson"
+            if projection == "wgs84":
+                gj_lod = load_geojson(fname)
+            else:
+                gj_lod = reproject_geojson(fname, projection)
+            gj = gj_lod
+        except FileNotFoundError:
+            # fallback: determine tolerance from lod and simplify
+            tol = LOD_TOLERANCES.get(lod, tolerance)
+            for f in gj.get("features", []):
+                geom = f.get("geometry")
+                if not geom:
+                    continue
+                try:
+                    line = shape(geom)
+                    if isinstance(line, LineString):
+                        simp = simplify_path(line, tol)
+                        f["geometry"] = simp.__geo_interface__
+                except Exception:
+                    continue
+    else:
+        # optionally simplify geometries when no lod requested
+        if simplify:
+            for f in gj.get("features", []):
+                geom = f.get("geometry")
+                if not geom:
+                    continue
+                try:
+                    line = shape(geom)
+                    if isinstance(line, LineString):
+                        simp = simplify_path(line, tolerance)
+                        f["geometry"] = simp.__geo_interface__
+                except Exception:
+                    continue
 
     result: Dict[str, Any] = {
         "type": "FeatureCollection",

@@ -45,13 +45,22 @@ def group_movements_by_unit(
 
 def generate_bundling_data(
     gj: Dict[str, Any], weight_field: Optional[str] = None
-) -> List[Dict[str, Any]]:
-    """Generate simple bundling precompute data from a movements GeoJSON.
+) -> Dict[str, Any]:
+    """Generate aggregated bundling data from a movements GeoJSON.
 
-    For each feature, compute start/end coordinates, vector, angle and weight.
-    Returns list of dicts: {unit, start, end, vector, angle, weight}
+    Aggregates by `unit` and returns a mapping unit -> aggregated metrics:
+    {
+      unit: {
+         "count": int,  # number of features
+         "weight": float, # total weight
+         "start": [x,y],  # weighted average start
+         "end": [x,y],    # weighted average end
+         "angle": float,  # weighted circular mean angle (degrees)
+      }
+    }
     """
-    out = []
+    groups: Dict[str, Dict[str, float]] = {}
+    # accumulator per unit
     for f in gj.get("features", []):
         geom = f.get("geometry")
         if not geom:
@@ -59,30 +68,112 @@ def generate_bundling_data(
         try:
             line = shape(geom)
             if not isinstance(line, LineString):
-                # try to extract first LineString
                 continue
         except Exception:
             continue
 
         start, end = _line_start_end_coords(line)
-        vector, angle = _vector_and_angle(start, end)
+        _, angle = _vector_and_angle(start, end)
         props = f.get("properties", {})
-        weight = 1
+        weight = 1.0
         if weight_field and weight_field in props:
             try:
-                weight = float(props.get(weight_field) or 1)
+                weight = float(props.get(weight_field) or 1.0)
             except Exception:
-                weight = 1
+                weight = 1.0
 
-        out.append(
+        unit = props.get("unit") or "unknown"
+        acc = groups.setdefault(
+            unit,
             {
-                "unit": props.get("unit"),
-                "start": [float(start[0]), float(start[1])],
-                "end": [float(end[0]), float(end[1])],
-                "vector": [float(vector[0]), float(vector[1])],
-                "angle": float(angle),
-                "weight": float(weight),
-            }
+                "count": 0,
+                "weight": 0.0,
+                "start_x": 0.0,
+                "start_y": 0.0,
+                "end_x": 0.0,
+                "end_y": 0.0,
+                "sum_sin": 0.0,
+                "sum_cos": 0.0,
+            },
         )
 
+        acc["count"] += 1
+        acc["weight"] += weight
+        acc["start_x"] += start[0] * weight
+        acc["start_y"] += start[1] * weight
+        acc["end_x"] += end[0] * weight
+        acc["end_y"] += end[1] * weight
+        import math
+
+        rad = math.radians(angle)
+        acc["sum_cos"] += math.cos(rad) * weight
+        acc["sum_sin"] += math.sin(rad) * weight
+
+    # finalize aggregation
+    out: Dict[str, Any] = {}
+    for unit, acc in groups.items():
+        w = acc["weight"] if acc["weight"] != 0 else acc["count"] or 1
+        start = [acc["start_x"] / w, acc["start_y"] / w]
+        end = [acc["end_x"] / w, acc["end_y"] / w]
+        import math
+
+        angle = (
+            math.degrees(math.atan2(acc["sum_sin"], acc["sum_cos"]))
+            if (acc["sum_sin"] or acc["sum_cos"])
+            else 0.0
+        )
+
+        out[unit] = {
+            "count": int(acc["count"]),
+            "weight": float(acc["weight"]),
+            "start": [float(start[0]), float(start[1])],
+            "end": [float(end[0]), float(end[1])],
+            "angle": float(angle),
+        }
+
     return out
+
+
+def simplify_geojson(gj: Dict[str, Any], tolerance: float) -> Dict[str, Any]:
+    """Return a new GeoJSON dict with LineString geometries simplified by tolerance."""
+    from shapely.geometry import shape
+
+    out = {"type": gj.get("type", "FeatureCollection"), "features": []}
+    for f in gj.get("features", []):
+        geom = f.get("geometry")
+        if not geom:
+            out["features"].append(f)
+            continue
+        try:
+            geom_obj = shape(geom)
+            if isinstance(geom_obj, LineString):
+                simp = geom_obj.simplify(tolerance, preserve_topology=True)
+                new_f = {**f, "geometry": simp.__geo_interface__}
+                out["features"].append(new_f)
+            else:
+                out["features"].append(f)
+        except Exception:
+            out["features"].append(f)
+    return out
+
+
+def precompute_lods(gj: Dict[str, Any], lod_map: dict, out_dir) -> list:
+    """Precompute simplified GeoJSON files for given LOD map.
+
+    lod_map: mapping of lod -> tolerance
+    out_dir: Path-like directory to write files
+    Returns list of written file paths
+    """
+    import json
+    from pathlib import Path
+
+    p = Path(out_dir)
+    p.mkdir(parents=True, exist_ok=True)
+    written = []
+    for lod, tol in lod_map.items():
+        outgj = simplify_geojson(gj, tol)
+        fname = p / f"movements_lod_{lod}.geojson"
+        with open(fname, "w", encoding="utf-8") as fh:
+            json.dump(outgj, fh, ensure_ascii=False, indent=2)
+        written.append(str(fname))
+    return written
