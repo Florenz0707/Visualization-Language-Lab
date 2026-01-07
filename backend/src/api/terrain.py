@@ -1,4 +1,5 @@
 import base64
+import os
 from pathlib import Path
 from typing import Dict
 
@@ -17,6 +18,11 @@ async def get_contours(interval: int = Query(100)) -> Dict:
 
     Currently returns the precomputed `data/geojson/contours.geojson`.
     """
+    # If running in lightweight test mode, avoid loading potentially large
+    # contours.geojson and return an empty FeatureCollection.
+    if os.getenv("LIGHTWEIGHT_MODE", "0") == "1":
+        return {"type": "FeatureCollection", "features": []}
+
     try:
         gj = load_geojson("contours.geojson")
     except FileNotFoundError as e:
@@ -43,6 +49,17 @@ async def get_dem(bbox: str = Query(...), resolution: int = Query(512)) -> Dict:
         bbox_f = [float(p) for p in parts]
     except Exception:
         raise HTTPException(status_code=400, detail="bbox values must be numeric")
+
+    # In lightweight test mode, avoid reading the heightmap binary (which can
+    # be large) and return only metadata placeholder.
+    if os.getenv("LIGHTWEIGHT_MODE", "0") == "1":
+        return {
+            "format": "png",
+            "image_base64": None,
+            "requested_bbox": bbox_f,
+            "requested_resolution": resolution,
+            "source": "(skipped in LIGHTWEIGHT_MODE)",
+        }
 
     heightmap = DEM_PROCESSED / "heightmap_2048.png"
     if not heightmap.exists():
