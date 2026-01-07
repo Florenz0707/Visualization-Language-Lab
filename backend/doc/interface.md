@@ -16,6 +16,14 @@
   - Query 参数：`projection` (wgs84，预留)
   - 示例：`/api/territories`
 
+- **GET /api/flows**: 返回简化的 flow 对（每条行军轨迹的起止点），用于前端流向图（flow map）渲染。
+  - Query 参数:
+    - `simplify` (bool, 默认 true): 是否对路径应用 Douglas–Peucker 简化
+    - `threshold` (float, 默认 0.01): 简化容差（仅在 `simplify=true` 时生效）
+  - 响应: GeoJSON FeatureCollection，每个 Feature 为一条 LineString（仅包含起点与终点坐标）及若干 properties (`unit`, `events_count`, `start_date`, `end_date`)。
+  - 兼容模式: 当环境变量 `LIGHTWEIGHT_MODE=1` 时，端点返回空的 FeatureCollection（用于测试/CI 以避免加载大文件）。
+  - 示例：`/api/flows?simplify=true&threshold=0.05`
+
 备注：
 - 若某些数据文件不存在，请运行相应的生成脚本：
   - `scripts/generate_movements_geojson.py` -> 生成 `data/geojson/movements.geojson`

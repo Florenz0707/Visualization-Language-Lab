@@ -339,7 +339,7 @@ def print_statistics(geojson: dict):
         print(f"  经度: {min(lons):.2f}° - {max(lons):.2f}°")
 
 
-def main():
+def main(metadata_out: str | None = None):
     print("=" * 70)
     print("Events GeoJSON生成器")
     print("1812拿破仑东征项目")
@@ -360,6 +360,26 @@ def main():
 
         # 5. 统计
         print_statistics(geojson)
+
+        # 6. 写入 provenance metadata（可选）
+        if metadata_out:
+            try:
+                import provenance
+
+                provenance.write_provenance(
+                    metadata_out,
+                    generated_by="scripts/generate_events_geojson.py",
+                    source_files=[str(INPUT_FILE)],
+                    processing_steps=[
+                        "load timeline",
+                        "convert events to GeoJSON",
+                        "validate",
+                        "save events.geojson",
+                    ],
+                )
+                print(f"Wrote provenance metadata to {metadata_out}")
+            except Exception as e:
+                print(f"Warning: failed to write provenance metadata: {e}")
 
         print("\n" + "=" * 70)
         print("✅ 生成完成!")
@@ -383,4 +403,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate events.geojson from timeline JSON"
+    )
+    parser.add_argument(
+        "--metadata-out", help="Path to write provenance JSON", default=None
+    )
+    args = parser.parse_args()
+
+    main(metadata_out=args.metadata_out)

@@ -4,6 +4,7 @@ Shapefile到GeoJSON转换脚本
 支持国家边界、城市点、河流等地理数据的转换
 """
 
+import argparse
 import os
 import subprocess
 import sys
@@ -281,9 +282,13 @@ def main():
             print(f"\n⚠️  跳过 {task['name']}: 源文件不存在")
 
     # 可选：创建过滤数据集
-    print("\n是否创建过滤数据集？(y/n): ", end="")
-    if input().lower().strip() == "y":
-        create_filtered_datasets()
+    if not auto_confirm:
+        print("\n是否创建过滤数据集？(y/n): ", end="")
+        if input().lower().strip() == "y":
+            create_filtered_datasets()
+    else:
+        # 在自动模式下默认跳过额外过滤步骤
+        pass
 
     # 总结
     print("\n" + "=" * 60)
@@ -302,6 +307,47 @@ def main():
             size_mb = f.stat().st_size / (1024 * 1024)
             print(f"  - {f.name} ({size_mb:.2f} MB)")
 
+    # 写入可选 provenance metadata
+    if metadata_out:
+        try:
+            import provenance
+
+            provenance.write_provenance(
+                metadata_out,
+                generated_by="scripts/convert_shapefiles_to_geojson.py",
+                source_files=[
+                    str(t["source"]) for t in CONVERSION_TASKS if t["source"].exists()
+                ],
+                processing_steps=["ogr2ogr conversion", "reproject to EPSG:4326"],
+                extra={
+                    "outputs": [str(f) for f in GEOJSON_DIR.glob("*.geojson")],
+                },
+            )
+            print(f"Wrote provenance metadata to {metadata_out}")
+        except Exception as e:
+            print(f"Warning: failed to write provenance metadata: {e}")
+
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Convert shapefiles to GeoJSON")
+    parser.add_argument(
+        "--metadata-out", help="Path to write provenance JSON", default=None
+    )
+    parser.add_argument(
+        "--yes",
+        "-y",
+        help="Run non-interactively (assume no for optional prompts)",
+        action="store_true",
+    )
+    args = parser.parse_args()
+
+    # main accepts auto_confirm and metadata_out
+    def _run_main():
+        # pass args into main via closure
+        return main()
+
+    # set helpers used in main via globals
+    auto_confirm = args.yes
+    metadata_out = args.metadata_out
+
+    sys.exit(main())
