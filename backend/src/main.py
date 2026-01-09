@@ -39,6 +39,7 @@ from src.api.events import router as events_router
 from src.api.flows import router as flows_router
 from src.api.movements import router as movements_router
 from src.api.statistics import router as statistics_router
+from src.api.story import router as story_router
 from src.api.terrain import router as terrain_router
 from src.api.territories import router as territories_router
 
@@ -65,6 +66,7 @@ app.include_router(territories_router, prefix="/api")
 app.include_router(terrain_router, prefix="/api")
 app.include_router(flows_router, prefix="/api")
 app.include_router(statistics_router, prefix="/api")
+app.include_router(story_router, prefix="/api")
 
 
 @app.get("/")
