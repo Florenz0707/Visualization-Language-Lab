@@ -10,12 +10,14 @@ import numpy as np
 import pandas as pd
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "geojson"
+DATA_ROOT = Path(__file__).resolve().parents[2] / "data"
 
 # Cache sizes can be tuned via environment variables. Defaults chosen to be
 # reasonably large for local development; follow planA.md suggestion.
 GEOJSON_CACHE_SIZE = int(os.getenv("GEOJSON_CACHE_SIZE", "128"))
 GDF_CACHE_SIZE = int(os.getenv("GDF_CACHE_SIZE", "32"))
 REPROJECT_CACHE_SIZE = int(os.getenv("REPROJECT_CACHE_SIZE", "64"))
+JSON_CACHE_SIZE = int(os.getenv("JSON_CACHE_SIZE", "64"))
 
 
 def _load_geojson_impl(name: str) -> Dict[str, Any]:
@@ -36,6 +38,26 @@ def _load_geojson_impl(name: str) -> Dict[str, Any]:
 
 # cached wrapper
 load_geojson = lru_cache(maxsize=GEOJSON_CACHE_SIZE)(_load_geojson_impl)
+
+
+def _load_json_impl(name: str) -> Dict[str, Any]:
+    """Load a JSON file from data directory and cache it.
+
+    Args:
+        name: relative path under data/ (e.g. 'story/outline/example.json')
+
+    Returns:
+        Parsed JSON as a dict.
+    """
+    path = DATA_ROOT / name
+    if not path.exists():
+        raise FileNotFoundError(f"JSON not found: {path}")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# cached wrapper
+load_json = lru_cache(maxsize=JSON_CACHE_SIZE)(_load_json_impl)
 
 
 PROJECTIONS = {
@@ -129,6 +151,10 @@ def clear_caches() -> None:
     """Clear internal LRU caches (useful in tests or dev)."""
     try:
         load_geojson.cache_clear()
+    except Exception:
+        pass
+    try:
+        load_json.cache_clear()
     except Exception:
         pass
     try:

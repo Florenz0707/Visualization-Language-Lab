@@ -41,6 +41,19 @@
     ```
   - 示例：`/api/statistics/troops?start=1812-06-01&end=1812-12-31&period=month`
 
+- **GET /api/story/outline**: 返回 Story Mode 的章节大纲数据。
+  - Query 参数：
+    - `chapter_id` (int, 可选) — 指定章节 ID，返回单个章节；不指定则返回所有章节
+  - 响应：JSON 对象，包含标题、描述和章节列表。每个章节包含：
+    - `id`: 章节标识符
+    - `title`: 章节标题
+    - `date`: 历史日期 (YYYY-MM-DD)
+    - `event_ids`: 关联的事件 ID 列表
+    - `camera`: 镜头参数对象 (`center` 坐标, `zoom`, `pitch`, `bearing`)
+    - `narrative`: 历史背景文本（200-300字）
+    - `image`: 配图信息对象 (`url`, `attribution`)
+  - 示例：`/api/story/outline` 或 `/api/story/outline?chapter_id=1`
+
 备注：
 
 - 若某些数据文件不存在，请运行相应的生成脚本：
