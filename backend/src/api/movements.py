@@ -15,6 +15,34 @@ from src.services.movement_utils import (
 
 router = APIRouter()
 
+# Zoom to LOD mapping for automatic LOD selection
+ZOOM_TO_LOD = {
+    0: 7,
+    1: 7,
+    2: 7,  # Very far out - aggregated points
+    3: 6,
+    4: 6,  # Far out - very simplified
+    5: 5,
+    6: 4,  # Medium distance - simplified
+    7: 3,
+    8: 2,  # Close - detailed
+    9: 1,
+    10: 1,
+    11: 1,
+    12: 1,  # Very close - full detail
+}
+
+# Extended LOD tolerance mapping
+LOD_TOLERANCES = {
+    1: 0.00005,  # High detail
+    2: 0.0001,  # Medium-high detail
+    3: 0.0005,  # Medium detail
+    4: 0.001,  # Medium-low detail
+    5: 0.005,  # Low detail
+    6: 0.01,  # Very low detail
+    7: 0.05,  # Minimal detail (fallback if aggregate not available)
+}
+
 
 @router.get("/movements")
 async def get_movements(
@@ -23,18 +51,27 @@ async def get_movements(
     tolerance: float = Query(0.01),
     group: bool = Query(False),
     bundling: bool = Query(False),
-    lod: Optional[int] = Query(None),
+    lod: Optional[int] = Query(None, ge=1, le=7),
+    zoom: Optional[int] = Query(None, ge=0, le=12),
     bbox: Optional[str] = Query(None),
 ) -> Dict[str, Any]:
     """Return movements FeatureCollection.
 
     Optional query params:
-    - `simplify` (bool): apply Douglas-Peucker simplification with `tolerance`.
-    - `tolerance` (float): simplification tolerance in coordinate units.
-    - `group` (bool): return grouped features by `unit` under `groups` key.
-    - `bundling` (bool): include precomputed bundling metadata under `bundling` key.
-    - `bbox` (str): bounding box filter as 'minx,miny,maxx,maxy'.
+    - `projection` (str): coordinate projection (wgs84, webmercator, lambert)
+    - `simplify` (bool): apply Douglas-Peucker simplification with `tolerance`
+    - `tolerance` (float): simplification tolerance in coordinate units
+    - `group` (bool): return grouped features by `unit` under `groups` key
+    - `bundling` (bool): include precomputed bundling metadata under `bundling` key
+    - `lod` (int): Level of Detail (1-7), 1=highest detail, 7=aggregated points
+    - `zoom` (int): Map zoom level (0-12), automatically selects appropriate LOD
+    - `bbox` (str): bounding box filter as 'minx,miny,maxx,maxy'
+
+    Note: If both `lod` and `zoom` are provided, `lod` takes precedence.
     """
+    # Auto-select LOD from zoom level if zoom provided and lod not specified
+    if zoom is not None and lod is None:
+        lod = ZOOM_TO_LOD.get(zoom, 3)  # Default to medium detail
     # Parse bbox if provided
     bbox_tuple = None
     if bbox:
@@ -88,7 +125,6 @@ async def get_movements(
 
     # handle LOD: if lod provided, try to load precomputed file, otherwise
     # fallback to using a tolerance mapping and simplify on-the-fly
-    LOD_TOLERANCES = {1: 0.0001, 2: 0.001, 3: 0.01}
     if lod is not None:
         try:
             fname = f"movements_lod_{lod}.geojson"

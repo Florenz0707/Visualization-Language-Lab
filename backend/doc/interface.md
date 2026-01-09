@@ -15,11 +15,17 @@
     - `bbox` (可选) — 空间范围过滤，格式：`minx,miny,maxx,maxy`（逗号分隔的浮点数）
     - `simplify` (bool, 默认 `false`) — 是否对路径应用简化
     - `tolerance` (float, 默认 `0.01`) — 简化容差（坐标单位）
-    - `lod` (int, 可选) — 请求预计算的 LOD 等级（1..3）；服务将尝试加载 `movements_lod_{lod}.geojson`，若不存在将使用 LOD->容差映射即时简化
+    - `lod` (int, 可选, 1-7) — LOD等级：1=最高细节，7=聚合点
+    - `zoom` (int, 可选, 0-12) — 地图缩放级别，自动选择合适的LOD
     - `group` (bool, 默认 `false`) — 是否按 `unit` 字段分组并在响应中返回 `groups`
-    - `bundling` (bool, 默认 `false`) — 是否在响应中包含 `bundling` 预计算数据（start/end, vector, angle, weight）
+    - `bundling` (bool, 默认 `false`) — 是否在响应中包含 `bundling` 预计算数据
+  - LOD系统：
+    - LOD 1-2: 高细节（zoom > 7）
+    - LOD 3-4: 中等细节（zoom 5-7）
+    - LOD 5-6: 低细节（zoom 3-5）
+    - LOD 7: 聚合为点（zoom < 3）
   - 性能优化：使用空间索引（R-tree）加速 bbox 查询
-  - 示例：`/api/movements?simplify=true&tolerance=0.005&bundling=true&bbox=20,50,40,60`
+  - 示例：`/api/movements?zoom=18&bbox=20,50,40,60`
 
 - **GET /api/territories**: 返回 `territories.geojson` 的 FeatureCollection（按事件缓冲合并的控制区）。
   - Query 参数：`projection` (可选, 默认 `wgs84`) — 支持值：`wgs84`（EPSG:4326）、`webmercator`（EPSG:3857）、`lambert`（EPSG:3034）。

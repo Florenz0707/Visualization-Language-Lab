@@ -157,10 +157,81 @@ def simplify_geojson(gj: Dict[str, Any], tolerance: float) -> Dict[str, Any]:
     return out
 
 
+def aggregate_to_points(gj: Dict[str, Any], group_by: str = "unit") -> Dict[str, Any]:
+    """Aggregate LineString movements to Point features by grouping.
+
+    For low LOD levels, convert movement paths to aggregated points
+    representing the centroid of each group.
+
+    Args:
+        gj: GeoJSON FeatureCollection with LineString features
+        group_by: Property field to group by (default: "unit")
+
+    Returns:
+        GeoJSON FeatureCollection with Point features
+    """
+    from shapely.geometry import MultiPoint, Point
+
+    groups: Dict[str, List[Tuple[float, float]]] = {}
+    group_props: Dict[str, Dict[str, Any]] = {}
+
+    for f in gj.get("features", []):
+        geom = f.get("geometry")
+        props = f.get("properties", {})
+        group_key = props.get(group_by) or "unknown"
+
+        if not geom:
+            continue
+
+        try:
+            line = shape(geom)
+            if isinstance(line, LineString):
+                # Get centroid of the line
+                centroid = line.centroid
+                groups.setdefault(group_key, []).append((centroid.x, centroid.y))
+
+                # Accumulate properties
+                if group_key not in group_props:
+                    group_props[group_key] = {
+                        group_by: group_key,
+                        "count": 0,
+                        "total_events": 0,
+                    }
+                group_props[group_key]["count"] += 1
+                if "events_count" in props:
+                    try:
+                        group_props[group_key]["total_events"] += int(
+                            props["events_count"]
+                        )
+                    except Exception:
+                        pass
+        except Exception:
+            continue
+
+    # Create point features from aggregated groups
+    features = []
+    for group_key, coords in groups.items():
+        if not coords:
+            continue
+
+        # Calculate centroid of all centroids
+        multi_point = MultiPoint(coords)
+        centroid = multi_point.centroid
+
+        feature = {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [centroid.x, centroid.y]},
+            "properties": group_props.get(group_key, {group_by: group_key}),
+        }
+        features.append(feature)
+
+    return {"type": "FeatureCollection", "features": features}
+
+
 def precompute_lods(gj: Dict[str, Any], lod_map: dict, out_dir) -> list:
     """Precompute simplified GeoJSON files for given LOD map.
 
-    lod_map: mapping of lod -> tolerance
+    lod_map: mapping of lod -> tolerance or 'aggregate'
     out_dir: Path-like directory to write files
     Returns list of written file paths
     """
@@ -170,8 +241,14 @@ def precompute_lods(gj: Dict[str, Any], lod_map: dict, out_dir) -> list:
     p = Path(out_dir)
     p.mkdir(parents=True, exist_ok=True)
     written = []
-    for lod, tol in lod_map.items():
-        outgj = simplify_geojson(gj, tol)
+    for lod, config in lod_map.items():
+        if config == "aggregate":
+            # For lowest LOD, aggregate to points
+            outgj = aggregate_to_points(gj)
+        else:
+            # For other LODs, simplify with tolerance
+            outgj = simplify_geojson(gj, config)
+
         fname = p / f"movements_lod_{lod}.geojson"
         with open(fname, "w", encoding="utf-8") as fh:
             json.dump(outgj, fh, ensure_ascii=False, indent=2)
