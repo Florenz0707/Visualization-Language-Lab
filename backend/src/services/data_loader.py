@@ -3,11 +3,12 @@ import json as _json
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+from src.services.indexing import SpatialIndex, SpatioTemporalIndex, TemporalIndex
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "geojson"
 DATA_ROOT = Path(__file__).resolve().parents[2] / "data"
@@ -147,6 +148,76 @@ def _reproject_geojson_impl(name: str, projection: str) -> Dict[str, Any]:
 reproject_geojson = lru_cache(maxsize=REPROJECT_CACHE_SIZE)(_reproject_geojson_impl)
 
 
+def _build_spatial_index_impl(name: str) -> Optional[SpatialIndex]:
+    """Build spatial index for a GeoJSON file.
+
+    Args:
+        name: filename under data/geojson
+
+    Returns:
+        SpatialIndex instance or None if rtree not available
+    """
+    try:
+        gj = load_geojson(name)
+        features = gj.get("features", [])
+        idx = SpatialIndex()
+        idx.build_from_features(features)
+        return idx
+    except ImportError:
+        # rtree not available
+        return None
+    except Exception:
+        return None
+
+
+# cached spatial index builder
+build_spatial_index = lru_cache(maxsize=16)(_build_spatial_index_impl)
+
+
+def _build_temporal_index_impl(name: str, date_field: str = "date") -> TemporalIndex:
+    """Build temporal index for a GeoJSON file.
+
+    Args:
+        name: filename under data/geojson
+        date_field: name of the date field in properties
+
+    Returns:
+        TemporalIndex instance
+    """
+    gj = load_geojson(name)
+    features = gj.get("features", [])
+    idx = TemporalIndex(date_field)
+    idx.build_from_features(features)
+    return idx
+
+
+# cached temporal index builder
+build_temporal_index = lru_cache(maxsize=16)(_build_temporal_index_impl)
+
+
+def _build_spatiotemporal_index_impl(
+    name: str, date_field: str = "date"
+) -> SpatioTemporalIndex:
+    """Build combined spatial and temporal index for a GeoJSON file.
+
+    Args:
+        name: filename under data/geojson
+        date_field: name of the date field in properties
+
+    Returns:
+        SpatioTemporalIndex instance
+    """
+    gj = load_geojson(name)
+    features = gj.get("features", [])
+    idx = SpatioTemporalIndex(date_field)
+    idx.build_from_features(features)
+    return idx
+
+
+# cached spatiotemporal index builder
+build_spatiotemporal_index = lru_cache(maxsize=16)(_build_spatiotemporal_index_impl)
+
+
 def clear_caches() -> None:
     """Clear internal LRU caches (useful in tests or dev)."""
     try:
@@ -163,5 +234,17 @@ def clear_caches() -> None:
         pass
     try:
         reproject_geojson.cache_clear()
+    except Exception:
+        pass
+    try:
+        build_spatial_index.cache_clear()
+    except Exception:
+        pass
+    try:
+        build_temporal_index.cache_clear()
+    except Exception:
+        pass
+    try:
+        build_spatiotemporal_index.cache_clear()
     except Exception:
         pass

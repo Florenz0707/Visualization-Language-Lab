@@ -1,18 +1,25 @@
 **API 接口说明 (基础)**
 
 - **GET /api/events**: 返回 `events.geojson` 的 FeatureCollection。
-  - Query 参数：`start` (YYYY-MM-DD，可选), `end` (YYYY-MM-DD，可选), `projection` (可选, 默认 `wgs84`) — 支持值：`wgs84`（EPSG:4326）、`webmercator`（EPSG:3857）、`lambert`（EPSG:3034）。
-  - 示例：`/api/events?start=1812-09-01&end=1812-10-01`
+  - Query 参数：
+    - `start` (YYYY-MM-DD，可选) — 起始日期过滤
+    - `end` (YYYY-MM-DD，可选) — 结束日期过滤
+    - `bbox` (可选) — 空间范围过滤，格式：`minx,miny,maxx,maxy`（逗号分隔的浮点数）
+    - `projection` (可选, 默认 `wgs84`) — 支持值：`wgs84`（EPSG:4326）、`webmercator`（EPSG:3857）、`lambert`（EPSG:3034）
+  - 性能优化：使用时间索引（B-tree）和空间索引（R-tree）加速查询
+  - 示例：`/api/events?start=1812-09-01&end=1812-10-01&bbox=20,50,40,60`
 
 - **GET /api/movements**: 返回 `movements.geojson` 的 FeatureCollection（军队行军轨迹）。
   - 可选 Query 参数：
     - `projection` (可选, 默认 `wgs84`) — 支持 `wgs84`,`webmercator`,`lambert`
+    - `bbox` (可选) — 空间范围过滤，格式：`minx,miny,maxx,maxy`（逗号分隔的浮点数）
     - `simplify` (bool, 默认 `false`) — 是否对路径应用简化
     - `tolerance` (float, 默认 `0.01`) — 简化容差（坐标单位）
     - `lod` (int, 可选) — 请求预计算的 LOD 等级（1..3）；服务将尝试加载 `movements_lod_{lod}.geojson`，若不存在将使用 LOD->容差映射即时简化
     - `group` (bool, 默认 `false`) — 是否按 `unit` 字段分组并在响应中返回 `groups`
     - `bundling` (bool, 默认 `false`) — 是否在响应中包含 `bundling` 预计算数据（start/end, vector, angle, weight）
-  - 示例：`/api/movements?simplify=true&tolerance=0.005&bundling=true`
+  - 性能优化：使用空间索引（R-tree）加速 bbox 查询
+  - 示例：`/api/movements?simplify=true&tolerance=0.005&bundling=true&bbox=20,50,40,60`
 
 - **GET /api/territories**: 返回 `territories.geojson` 的 FeatureCollection（按事件缓冲合并的控制区）。
   - Query 参数：`projection` (可选, 默认 `wgs84`) — 支持值：`wgs84`（EPSG:4326）、`webmercator`（EPSG:3857）、`lambert`（EPSG:3034）。
