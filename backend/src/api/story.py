@@ -25,7 +25,7 @@ async def get_story_outline(
     - image: Image source attribution
     """
     try:
-        data = load_json("story/outline/example.json")
+        data = load_json("story/outline/chapters.json")
     except FileNotFoundError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
