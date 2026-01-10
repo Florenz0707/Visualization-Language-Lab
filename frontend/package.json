@@ -1,18 +1,4 @@
 {
-  "name": "visualization-language-lab",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test:unit": "vitest",
-    "lint": "eslint \"./src/**/*.{ts,js,vue}\" --fix --cache"
-  },
   "dependencies": {
     "@react-three/fiber": "^9.4.2",
     "@turf/turf": "^7.3.1",
@@ -46,5 +32,19 @@
     "vite": "^7.2.4",
     "vite-plugin-vue-devtools": "^8.0.5",
     "vitest": "^4.0.14"
-  }
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "name": "visualization-language-lab",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "lint": "eslint \"./src/**/*.{ts,js,vue}\" --fix --cache",
+    "preview": "vite preview",
+    "test:unit": "vitest"
+  },
+  "type": "module",
+  "version": "0.0.0"
 }
