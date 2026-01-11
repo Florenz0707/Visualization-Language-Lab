@@ -21,6 +21,14 @@ const layerGroups = ref({
   flows: null
 })
 
+// Map layer groups (countries, provinces, cities, rivers)
+const mapLayerGroups = ref({
+  countries: null,
+  provinces: null,
+  cities_major: null,
+  rivers: null
+})
+
 // Store all data for filtering
 const allData = ref({
   events: null,
@@ -49,6 +57,9 @@ onMounted(async () => {
 
   // Load data layers
   await loadLayers()
+
+  // Load all map layers at startup
+  await loadAllMapLayers()
 })
 
 const loadLayers = async () => {
@@ -216,6 +227,81 @@ const loadLayers = async () => {
 
   } catch (error) {
     console.error('Error loading flows:', error)
+  }
+}
+
+// Load all map layers at startup
+const loadAllMapLayers = async () => {
+  const mapLayerTypes = ['countries', 'provinces', 'cities_major', 'rivers']
+
+  for (const layerId of mapLayerTypes) {
+    try {
+      const response = await fetch(`http://localhost:9000/api/maps/${layerId}?simplify=false`)
+      const data = await response.json()
+
+      // Create layer but don't add to map yet
+      const layer = L.geoJSON(data, {
+        style: (feature) => {
+          if (layerId === 'countries' || layerId === 'provinces') {
+            return {
+              fillColor: 'transparent',
+              color: '#94a3b8',
+              weight: layerId === 'countries' ? 2 : 1,
+              opacity: 0.6
+            }
+          } else if (layerId === 'rivers') {
+            return {
+              color: '#3b82f6',
+              weight: 1.5,
+              opacity: 0.5
+            }
+          }
+          return {}
+        },
+        pointToLayer: (feature, latlng) => {
+          if (layerId === 'cities_major') {
+            return L.circleMarker(latlng, {
+              radius: 4,
+              fillColor: '#f59e0b',
+              color: '#fff',
+              weight: 1,
+              opacity: 1,
+              fillOpacity: 0.7
+            })
+          }
+        },
+        onEachFeature: (feature, layer) => {
+          if (feature.properties && feature.properties.name) {
+            layer.bindPopup(`<strong>${feature.properties.name}</strong>`)
+          }
+        }
+      })
+
+      mapLayerGroups.value[layerId] = layer
+    } catch (error) {
+      console.error(`Error loading map layer ${layerId}:`, error)
+    }
+  }
+
+  // Store toggle function in mapStore after all layers are loaded
+  mapStore.setMapLayerToggleFunction(toggleMapLayerVisibility)
+}
+
+// Function to toggle map layer visibility
+const toggleMapLayerVisibility = (layerId, visible) => {
+  if (!map.value) return
+
+  const layerGroup = mapLayerGroups.value[layerId]
+  if (!layerGroup) return
+
+  if (visible) {
+    if (!map.value.hasLayer(layerGroup)) {
+      map.value.addLayer(layerGroup)
+    }
+  } else {
+    if (map.value.hasLayer(layerGroup)) {
+      map.value.removeLayer(layerGroup)
+    }
   }
 }
 

@@ -9,6 +9,9 @@ from src.services.data_loader import load_geojson, reproject_geojson
 
 router = APIRouter()
 
+# 战役区域的默认bbox (经度20-45, 纬度50-60)
+DEFAULT_CAMPAIGN_BBOX = (20.0, 50.0, 45.0, 60.0)
+
 # 支持的地图数据类型
 MAP_DATA_TYPES = {
     "countries": "countries_eastern_europe.geojson",
@@ -75,8 +78,7 @@ async def get_map_data(
     else:
         data = load_geojson(filename)
 
-    # 解析bbox
-    bbox_tuple = None
+    # 解析bbox (如果未提供,使用默认战役区域bbox)
     if bbox:
         try:
             parts = bbox.split(",")
@@ -85,10 +87,11 @@ async def get_map_data(
             bbox_tuple = tuple(map(float, parts))
         except:
             raise HTTPException(status_code=400, detail="Invalid bbox format")
+    else:
+        bbox_tuple = DEFAULT_CAMPAIGN_BBOX
 
-    # 过滤bbox
-    if bbox_tuple:
-        data["features"] = filter_by_bbox(data["features"], bbox_tuple)
+    # 过滤bbox (始终应用)
+    data["features"] = filter_by_bbox(data["features"], bbox_tuple)
 
     # 简化几何
     if simplify:

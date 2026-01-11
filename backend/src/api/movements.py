@@ -15,6 +15,9 @@ from src.services.movement_utils import (
 
 router = APIRouter()
 
+# 战役区域的默认bbox (经度20-45, 纬度50-60)
+DEFAULT_CAMPAIGN_BBOX = (20.0, 50.0, 45.0, 60.0)
+
 # Zoom to LOD mapping for automatic LOD selection
 ZOOM_TO_LOD = {
     0: 7,
@@ -66,14 +69,14 @@ async def get_movements(
     - `lod` (int): Level of Detail (1-7), 1=highest detail, 7=aggregated points
     - `zoom` (int): Map zoom level (0-12), automatically selects appropriate LOD
     - `bbox` (str): bounding box filter as 'minx,miny,maxx,maxy'
+      If bbox is not provided, defaults to campaign area (N50-60, E20-45).
 
     Note: If both `lod` and `zoom` are provided, `lod` takes precedence.
     """
     # Auto-select LOD from zoom level if zoom provided and lod not specified
     if zoom is not None and lod is None:
         lod = ZOOM_TO_LOD.get(zoom, 3)  # Default to medium detail
-    # Parse bbox if provided
-    bbox_tuple = None
+    # Parse bbox if provided, otherwise use default campaign bbox
     if bbox:
         try:
             parts = bbox.split(",")
@@ -84,6 +87,8 @@ async def get_movements(
             bbox_tuple = tuple(float(p) for p in parts)
         except ValueError:
             raise HTTPException(status_code=400, detail="bbox values must be numeric")
+    else:
+        bbox_tuple = DEFAULT_CAMPAIGN_BBOX
 
     try:
         if projection == "wgs84":
@@ -93,7 +98,7 @@ async def get_movements(
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    # Apply spatial filtering if bbox provided
+    # Apply spatial filtering (always applied with default or custom bbox)
     if bbox_tuple:
         try:
             idx = build_spatial_index("movements.geojson")
