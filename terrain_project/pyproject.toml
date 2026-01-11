@@ -1,0 +1,19 @@
+[project]
+name = "terrain-project"
+version = "0.1.0"
+description = "这是一个基于 Vue.js 开发的地理数据可视化项目，旨在通过整合 JAXA AW3D30 数字表面模型 (DSM) 与 Natural Earth 矢量边界，实现高精度的 3D 地形渲染与地理交互。"
+readme = "Readme.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fiona>=1.10.1",
+    "geopandas>=1.1.2",
+    "numpy>=2.4.1",
+    "plotly>=6.5.1",
+    "pyproj>=3.7.2",
+    "rasterio>=1.5.0",
+    "shapely>=2.1.2",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
