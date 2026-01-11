@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 .DS_Store
+.claude/
 
 report_template/*.aux
 report_template/*.log
