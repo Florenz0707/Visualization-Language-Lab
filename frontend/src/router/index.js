@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/components/Dashboard.vue'
 import Map3D from '@/components/3DMap.vue'
+import MapDemo from '@/components/MapDemo.vue'
 
 const routes = [
   {
@@ -12,6 +13,11 @@ const routes = [
     path: '/3d',
     name: '3DMap',
     component: Map3D
+  },
+  {
+    path: '/demo',
+    name: 'MapDemo',
+    component: MapDemo
   }
 ]
 
