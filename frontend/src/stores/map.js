@@ -10,7 +10,7 @@ export const useMapStore = defineStore('map', () => {
   })
   const playbackSpeed = ref(1)
   const isPlaying = ref(false)
-  const visibleLayers = ref(['events', 'movements', 'territories'])
+  const visibleLayers = ref(['events', 'movements', 'territories', 'flows'])
   const projection = ref('wgs84')
   const selectedUnits = ref([])
   const mapInstance = ref(null)
