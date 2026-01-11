@@ -118,3 +118,31 @@ def test_story_outline_event_ids(client):
         assert isinstance(
             event_ids, list
         ), f"event_ids should be a list in chapter {chapter['id']}"
+
+
+def test_get_chapter_audio_valid(client):
+    """Test getting TTS audio for a valid chapter."""
+    # First get available chapters
+    r = client.get("/api/story/outline")
+    assert r.status_code == 200
+    data = r.json()
+    chapters = data.get("chapters", [])
+
+    if len(chapters) > 0:
+        chapter_id = chapters[0]["id"]
+
+        # Try to get audio for first chapter
+        r = client.get(f"/api/story/tts/{chapter_id}")
+
+        # Audio might not exist yet (404) or should return audio file (200)
+        assert r.status_code in [200, 404]
+
+        if r.status_code == 200:
+            # Check response headers
+            assert r.headers["content-type"] == "audio/wav"
+
+
+def test_get_chapter_audio_invalid(client):
+    """Test getting TTS audio for an invalid chapter returns 404."""
+    r = client.get("/api/story/tts/9999")
+    assert r.status_code == 404

@@ -32,6 +32,8 @@ def _load_dotenv_from_repo_root() -> None:
 
 _load_dotenv_from_repo_root()
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -44,6 +46,29 @@ from src.api.terrain import router as terrain_router
 from src.api.territories import router as territories_router
 
 app = FastAPI(title="1812 Visualization Backend")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Check and generate TTS audio files on startup."""
+    try:
+        from src.services.tts_service import check_and_generate_tts_files
+
+        # Get project root directory
+        project_root = Path(__file__).resolve().parent.parent
+        chapters_json = project_root / "data" / "story" / "outline" / "chapters.json"
+
+        # Check if chapters.json exists
+        if chapters_json.exists():
+            logger.info("Checking TTS audio files...")
+            check_and_generate_tts_files(chapters_json)
+        else:
+            logger.warning(f"Chapters file not found: {chapters_json}")
+    except Exception as e:
+        logger.error(f"Failed to initialize TTS: {e}")
+        # Don't fail startup if TTS initialization fails
+        pass
+
 
 app.add_middleware(
     CORSMiddleware,
