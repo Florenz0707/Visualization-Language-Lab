@@ -1,0 +1,32 @@
+# TTS Configuration File
+# Defines available TTS models and their settings
+
+# Default model to use
+default_model: kokoro
+
+# Available TTS models
+models:
+  kokoro:
+    enabled: true
+    provider: kokoro
+    repo_id: hexgrad/Kokoro-82M
+    lang_code: z  # Mandarin Chinese
+    voice: zm_yunyang
+    sample_rate: 24000
+    speed: 0.9
+    description: "Kokoro-82M: Lightweight 82M parameter TTS model"
+
+# Global settings
+settings:
+  # Use proxy for model downloads (set in .env)
+  use_proxy: true
+
+  # Cache directory for models
+  cache_dir: ~/.cache/tts_models
+
+  # Output directory pattern
+  output_dir: data/story/tts/{model}
+
+  # Retry settings
+  max_retries: 3
+  retry_delay: 5

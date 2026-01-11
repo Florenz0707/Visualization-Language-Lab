@@ -67,6 +67,17 @@
     - `image`: 配图信息对象 (`url`, `attribution`)
   - 示例：`/api/story/outline` 或 `/api/story/outline?chapter_id=1`
 
+- **GET /api/story/tts/{chapter_id}**: 返回指定章节的TTS音频文件。
+  - 路径参数：
+    - `chapter_id` (int, 必需) — 章节ID
+  - 响应：WAV格式音频文件（`audio/wav`）
+  - 说明：
+    - 服务启动时会自动检测 `data/story/tts/` 目录下的音频文件
+    - 如果音频文件不存在，会使用 Kokoro-82M 模型自动生成
+    - 音频内容为对应章节的 `narrative` 字段文本
+    - 音频文件命名格式：`{chapter_id}.wav`
+  - 示例：`/api/story/tts/1` 返回第1章的音频文件
+
 备注：
 
 - 若某些数据文件不存在，请运行相应的生成脚本：

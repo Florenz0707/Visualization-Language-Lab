@@ -1,7 +1,10 @@
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse
 from src.services.data_loader import load_json
+from src.services.tts.config_loader import TTSConfigLoader
 
 router = APIRouter()
 
@@ -46,3 +49,52 @@ async def get_story_outline(
         "description": data.get("description", ""),
         "chapters": chapters,
     }
+
+
+@router.get("/story/tts/{chapter_id}")
+async def get_chapter_audio(
+    chapter_id: int,
+    model: Optional[str] = Query(None, description="TTS model name (default: kokoro)"),
+):
+    """Return TTS audio file for a specific chapter.
+
+    Args:
+        chapter_id: Chapter ID to get audio for
+        model: TTS model name (optional, defaults to configured default)
+
+    Returns:
+        Audio file (WAV format) for the chapter narrative
+    """
+    try:
+        # Get project root and config
+        project_root = Path(__file__).resolve().parent.parent.parent
+        config_loader = TTSConfigLoader()
+
+        # Determine model name
+        if model is None:
+            config = config_loader.load()
+            model = config.get("default_model", "kokoro")
+
+        # Get model-specific directory
+        tts_dir = project_root / config_loader.get_output_dir(model)
+        audio_path = tts_dir / f"{chapter_id}.wav"
+
+        # Check if audio file exists
+        if not audio_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Audio file for chapter {chapter_id} not found (model: {model}). "
+                "TTS generation may still be in progress.",
+            )
+
+        # Return audio file
+        return FileResponse(
+            path=str(audio_path),
+            media_type="audio/wav",
+            filename=f"chapter_{chapter_id}_{model}.wav",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
