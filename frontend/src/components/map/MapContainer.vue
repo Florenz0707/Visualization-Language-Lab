@@ -7,7 +7,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useMapStore } from '@/stores/map'
-import { fetchEvents, fetchMovements, fetchTerritories } from '@/services/api'
+import { fetchEvents, fetchMovements, fetchTerritories, fetchFlows } from '@/services/api'
 
 const mapContainer = ref(null)
 const map = ref(null)
@@ -17,15 +17,26 @@ const mapStore = useMapStore()
 const layerGroups = ref({
   events: null,
   movements: null,
-  territories: null
+  territories: null,
+  flows: null
+})
+
+// Store all data for filtering
+const allData = ref({
+  events: null,
+  movements: null,
+  territories: null,
+  flows: null
 })
 
 onMounted(async () => {
   // Initialize Leaflet map
   map.value = L.map(mapContainer.value, {
-    center: [55.7558, 37.6173], // Moscow [lat, lng]
-    zoom: 5,
-    zoomControl: true
+    center: [55.0, 30.0], // Center between Poland and Moscow for horizontal view
+    zoom: 4.5,
+    zoomControl: true,
+    minZoom: 3,
+    maxZoom: 10
   })
 
   // Add OpenStreetMap tiles
@@ -46,6 +57,9 @@ const loadLayers = async () => {
     const eventsData = await fetchEvents({
       projection: mapStore.projection
     })
+
+    // Store original data
+    allData.value.events = eventsData
 
     layerGroups.value.events = L.geoJSON(eventsData, {
       pointToLayer: (feature, latlng) => {
@@ -161,6 +175,48 @@ const loadLayers = async () => {
   } catch (error) {
     console.error('Error loading territories:', error)
   }
+
+  try {
+    // Load flows
+    const flowsData = await fetchFlows({
+      simplify: true,
+      threshold: 0.01
+    })
+
+    allData.value.flows = flowsData
+
+    layerGroups.value.flows = L.geoJSON(flowsData, {
+      style: (feature) => {
+        const eventsCount = feature.properties.events_count || 1
+
+        // Calculate line width based on events count
+        let weight = 3
+        if (eventsCount > 10) weight = 6
+        else if (eventsCount > 5) weight = 5
+        else if (eventsCount > 2) weight = 4
+
+        return {
+          color: '#8b5cf6',
+          weight: weight,
+          opacity: 0.6,
+          dashArray: '5, 5'
+        }
+      },
+      onEachFeature: (feature, layer) => {
+        if (feature.properties) {
+          const props = feature.properties
+          layer.bindPopup(`
+            <strong>${props.unit || 'Flow'}</strong><br>
+            Events: ${props.events_count || 'N/A'}<br>
+            Period: ${props.start_date || 'N/A'} - ${props.end_date || 'N/A'}
+          `)
+        }
+      }
+    }).addTo(map.value)
+
+  } catch (error) {
+    console.error('Error loading flows:', error)
+  }
 }
 
 // Watch for layer visibility changes
@@ -181,6 +237,65 @@ watch(() => mapStore.visibleLayers, (newLayers) => {
     }
   })
 }, { deep: true })
+
+// Watch for time changes to filter data
+watch(() => mapStore.currentTime, (newTime) => {
+  filterDataByTime(newTime)
+})
+
+const filterDataByTime = (currentTime) => {
+  if (!map.value || !allData.value.events) return
+
+  const currentTimestamp = currentTime.getTime()
+
+  // Filter events by date
+  if (layerGroups.value.events) {
+    map.value.removeLayer(layerGroups.value.events)
+  }
+
+  const filteredEvents = {
+    ...allData.value.events,
+    features: allData.value.events.features.filter(feature => {
+      const eventDate = feature.properties.date
+      if (!eventDate) return true
+      const eventTimestamp = new Date(eventDate).getTime()
+      return eventTimestamp <= currentTimestamp
+    })
+  }
+
+  layerGroups.value.events = L.geoJSON(filteredEvents, {
+    pointToLayer: (feature, latlng) => {
+      const type = feature.properties.type
+      let color = '#6b7280'
+      if (type === 'battle') color = '#dc2626'
+      else if (type === 'city') color = '#2563eb'
+      else if (type === 'camp') color = '#16a34a'
+
+      return L.circleMarker(latlng, {
+        radius: 6,
+        fillColor: color,
+        color: '#ffffff',
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      })
+    },
+    onEachFeature: (feature, layer) => {
+      if (feature.properties) {
+        const props = feature.properties
+        layer.bindPopup(`
+          <strong>${props.name || 'Unknown'}</strong><br>
+          Type: ${props.type || 'N/A'}<br>
+          Date: ${props.date || 'N/A'}
+        `)
+      }
+    }
+  })
+
+  if (mapStore.visibleLayers.includes('events')) {
+    layerGroups.value.events.addTo(map.value)
+  }
+}
 
 onUnmounted(() => {
   if (map.value) {

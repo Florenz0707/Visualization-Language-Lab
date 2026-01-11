@@ -37,7 +37,8 @@ const mapStore = useMapStore()
 const layers = ref([
   { id: 'events', name: '事件点', icon: '📍' },
   { id: 'movements', name: '行军轨迹', icon: '➡️' },
-  { id: 'territories', name: '控制区域', icon: '🗺️' }
+  { id: 'territories', name: '控制区域', icon: '🗺️' },
+  { id: 'flows', name: '流向图', icon: '🌊' }
 ])
 
 const currentProjection = computed({
