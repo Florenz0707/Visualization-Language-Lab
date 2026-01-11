@@ -10,6 +10,9 @@ from src.services.data_loader import (
 
 router = APIRouter()
 
+# 战役区域的默认bbox (经度20-45, 纬度50-60)
+DEFAULT_CAMPAIGN_BBOX = (20.0, 50.0, 45.0, 60.0)
+
 
 def _parse_date(s: str) -> Optional[date]:
     try:
@@ -30,9 +33,9 @@ async def get_events(
     Date format: ISO8601 (YYYY-MM-DD or full datetime).
     Supported projections: `wgs84` (default), `webmercator`, `lambert`.
     bbox format: 'minx,miny,maxx,maxy' (comma-separated floats).
+    If bbox is not provided, defaults to campaign area (N50-60, E20-45).
     """
-    # Parse bbox if provided
-    bbox_tuple = None
+    # Parse bbox if provided, otherwise use default campaign bbox
     if bbox:
         try:
             parts = bbox.split(",")
@@ -43,6 +46,8 @@ async def get_events(
             bbox_tuple = tuple(float(p) for p in parts)
         except ValueError:
             raise HTTPException(status_code=400, detail="bbox values must be numeric")
+    else:
+        bbox_tuple = DEFAULT_CAMPAIGN_BBOX
 
     # If projection is wgs84, use optimized indexing
     if projection == "wgs84":

@@ -37,14 +37,16 @@
       </label>
     </div>
 
-    <!-- 投影方式 -->
-    <div class="projection-control">
-      <label>投影:</label>
-      <select v-model="currentProjection" class="projection-select">
-        <option value="wgs84">WGS84</option>
-        <option value="webmercator">Web Mercator</option>
-        <option value="lambert">Lambert</option>
-      </select>
+    <!-- 地图图层控制 -->
+    <div class="map-layer-controls">
+      <label v-for="mapLayer in mapLayers" :key="mapLayer.id" class="layer-checkbox">
+        <input
+          type="checkbox"
+          :checked="isMapLayerVisible(mapLayer.id)"
+          @change="toggleMapLayer(mapLayer.id)"
+        />
+        <span>{{ mapLayer.name }}</span>
+      </label>
     </div>
   </div>
 </template>
@@ -63,6 +65,13 @@ const layers = ref([
   { id: 'flows', name: '流向' }
 ])
 
+const mapLayers = ref([
+  { id: 'countries', name: '国家边界' },
+  { id: 'provinces', name: '省份' },
+  { id: 'cities_major', name: '主要城市' },
+  { id: 'rivers', name: '河流' }
+])
+
 const minTime = computed(() => mapStore.timeRange.start.getTime())
 const maxTime = computed(() => mapStore.timeRange.end.getTime())
 const currentTimeValue = computed(() => mapStore.currentTime.getTime())
@@ -73,11 +82,6 @@ const formattedDate = computed(() => {
     month: 'long',
     day: 'numeric'
   })
-})
-
-const currentProjection = computed({
-  get: () => mapStore.projection,
-  set: (value) => mapStore.setProjection(value)
 })
 
 const onTimeChange = (event) => {
@@ -100,6 +104,14 @@ const isLayerVisible = (layerId) => {
 
 const toggleLayer = (layerId) => {
   mapStore.toggleLayer(layerId)
+}
+
+const isMapLayerVisible = (layerId) => {
+  return mapStore.visibleMapLayers?.includes(layerId) || false
+}
+
+const toggleMapLayer = (layerId) => {
+  mapStore.toggleMapLayer(layerId)
 }
 
 watch(() => mapStore.isPlaying, (isPlaying) => {
@@ -205,6 +217,13 @@ onUnmounted(() => {
 .layer-controls {
   display: flex;
   gap: 16px;
+}
+
+.map-layer-controls {
+  display: flex;
+  gap: 16px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .layer-checkbox {

@@ -8,12 +8,36 @@ from src.services.data_loader import load_geojson
 
 router = APIRouter()
 
+# 战役区域的默认bbox (经度20-45, 纬度50-60)
+DEFAULT_CAMPAIGN_BBOX = (20.0, 50.0, 45.0, 60.0)
+
+
+def filter_by_bbox(features: list, bbox: tuple) -> list:
+    """按bbox过滤features"""
+    from shapely.geometry import box, shape
+
+    minx, miny, maxx, maxy = bbox
+    bbox_geom = box(minx, miny, maxx, maxy)
+
+    filtered = []
+    for feature in features:
+        try:
+            geom = shape(feature["geometry"])
+            if geom.intersects(bbox_geom):
+                filtered.append(feature)
+        except:
+            continue
+
+    return filtered
+
 
 @router.get("/flows")
 async def get_flow_data(
     simplify: bool = Query(True), threshold: float = Query(0.01)
 ) -> Dict[str, Any]:
     """Return flow pairs (start/end) derived from `movements.geojson`.
+
+    Automatically filters to campaign area (N50-60, E20-45).
 
     Query params:
       - `simplify`: whether to apply Douglas-Peucker simplification
@@ -62,5 +86,8 @@ async def get_flow_data(
             },
         }
         features.append(out_feat)
+
+    # 应用默认战役区域bbox过滤
+    features = filter_by_bbox(features, DEFAULT_CAMPAIGN_BBOX)
 
     return {"type": "FeatureCollection", "features": features}

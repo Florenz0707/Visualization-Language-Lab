@@ -14,6 +14,8 @@ export const useMapStore = defineStore('map', () => {
   const projection = ref('wgs84')
   const selectedUnits = ref([])
   const mapInstance = ref(null)
+  const visibleMapLayers = ref([])
+  const mapLayerToggleFunction = ref(null)
 
   // Computed
   const currentTimeString = computed(() => {
@@ -89,6 +91,26 @@ export const useMapStore = defineStore('map', () => {
     selectedUnits.value = []
   }
 
+  const toggleMapLayer = (layerId) => {
+    const index = visibleMapLayers.value.indexOf(layerId)
+    const shouldBeVisible = index === -1
+
+    if (shouldBeVisible) {
+      visibleMapLayers.value.push(layerId)
+    } else {
+      visibleMapLayers.value.splice(index, 1)
+    }
+
+    // Call the toggle function directly if available
+    if (mapLayerToggleFunction.value) {
+      mapLayerToggleFunction.value(layerId, shouldBeVisible)
+    }
+  }
+
+  const setMapLayerToggleFunction = (fn) => {
+    mapLayerToggleFunction.value = fn
+  }
+
   return {
     // State
     currentTime,
@@ -99,6 +121,7 @@ export const useMapStore = defineStore('map', () => {
     projection,
     selectedUnits,
     mapInstance,
+    visibleMapLayers,
     // Computed
     currentTimeString,
     timeRangeString,
@@ -114,6 +137,8 @@ export const useMapStore = defineStore('map', () => {
     setMapInstance,
     selectUnit,
     deselectUnit,
-    clearSelectedUnits
+    clearSelectedUnits,
+    toggleMapLayer,
+    setMapLayerToggleFunction
   }
 })
