@@ -1,0 +1,16 @@
+{
+  "heightmap": "heightmap.png",
+  "texture": "texture.png",
+  "width": 1041,
+  "height": 416,
+  "bounds": [
+    20.012,
+    50.028,
+    44.972,
+    59.988
+  ],
+  "elev_min": -4.175347328186035,
+  "elev_max": 490.7100830078125,
+  "vmin": 0.0,
+  "vmax": 262.54705810546875
+}

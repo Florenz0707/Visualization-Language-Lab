@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>1812 拿破仑远征 - AI 交互沙盘</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #aaccff; font-family: 'Segoe UI', sans-serif; }
+        
+        /* UI 层 */
+        #ui-layer {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px;
+            pointer-events: none; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .legend-item { display: flex; align-items: center; margin-top: 5px; font-size: 13px; color: #333; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+        
+        /* 时间轴 */
+        #timeline-container {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 60%; background: rgba(255,255,255,0.95);
+            padding: 15px 30px; border-radius: 30px;
+            text-align: center; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        #date-display { font-size: 22px; font-weight: bold; color: #2c3e50; font-family: 'Times New Roman', serif; }
+        #time-slider { width: 100%; cursor: pointer; margin: 10px 0; }
+        
+        /* 分析面板 (新增) */
+        #analysis-panel {
+            position: absolute; top: 20px; right: -350px; /* 默认隐藏 */
+            width: 320px; max-height: 80vh; overflow-y: auto;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 20px;
+            box-shadow: -5px 5px 20px rgba(0,0,0,0.2);
+            transition: right 0.4s ease; z-index: 100;
+        }
+        #analysis-panel.active { right: 20px; }
+        .panel-header { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; }
+        .panel-header h3 { margin: 0; color: #333; }
+        .close-btn { cursor: pointer; font-size: 20px; color: #999; border: none; background: none; }
+        .loading-text { color: #666; text-align: center; font-style: italic; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% {opacity:0.6} 50% {opacity:1} 100% {opacity:0.6} }
+
+        /* 标签 */
+        .city-label { color: white; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 12px; pointer-events: none; margin-top: -5px;}
+        .battle-label { border: 1px solid gold; color: gold; background: rgba(0,0,0,0.8); }
+        
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; z-index: 200; }
+    </style>
+</head>
+<body>
+    <div id="loading">正在加载地形与历史...</div>
+
+    <div id="ui-layer">
+        <h3>1812 俄法战争沙盘</h3>
+        <div class="legend-item"><span style="color:#d63031; font-weight:bold; margin-right:5px;">—</span> 进攻路线 (Attack)</div>
+        <div class="legend-item"><span style="color:#2d3436; font-weight:bold; margin-right:5px;">—</span> 撤退路线 (Retreat)</div>
+        <div class="legend-item"><div class="dot" style="background:#ffaa00;"></div> 关键战役</div>
+        <div class="legend-item"><div class="dot" style="background:#ff0000;"></div> 首都/大城市</div>
+    </div>
+    
+    <div id="timeline-container">
+        <div id="date-display">1812-06-24</div>
+        <input type="range" id="time-slider" min="0" max="100" value="0">
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:#666;">
+            <span>尼曼河 (6月)</span><span>博罗季诺 (9月)</span><span>别列津纳河 (11月)</span>
+        </div>
+    </div>
+
+    <div id="analysis-panel">
+        <div class="panel-header">
+            <h3>📜 历史与地形分析</h3>
+            <button class="close-btn" onclick="document.getElementById('analysis-panel').classList.remove('active')">×</button>
+        </div>
+        <div id="analysis-content">
+            <p style="color:#666; text-align:center;">
+                请点击地图上的 <span style="color:#d63031">红色</span> 或 <span style="color:#2d3436">黑色</span> 路线，<br>唤醒 Gemini 进行分析。
+            </p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
