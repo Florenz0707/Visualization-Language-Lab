@@ -20,6 +20,8 @@
   - `src/main.py`：FastAPI 应用入口。
   - `src/api/`：各 API 路由（`events`, `movements`, `territories`）。
   - `src/services/`：数据加载与缓存工具。
+    - `src/services/llm/`：大语言模型（LLM）服务模块。
+    - `src/services/tts/`：文本转语音（TTS）服务模块。
 
 - `doc/`：文档（包含 `doc/interface.md` 的基础接口说明）。
 
@@ -27,6 +29,8 @@
 
 - 数据验证与生成：使用 `scripts/` 下脚本校验并生成缺失的 GeoJSON（如 `movements.geojson`、`territories.geojson`、`contours.geojson`）。
 - 后端 API：提供最小的 REST 接口以返回静态 GeoJSON（目前实现：`/api/events`、`/api/movements`、`/api/territories`）。
+- LLM 服务：集成大语言模型服务，支持 DashScope（通义千问）和 DeepSeek 等多种模型提供商。
+- TTS 服务：文本转语音服务，支持 Kokoro-82M 模型自动生成章节旁白音频。
 
 快速开始（开发环境）
 
@@ -90,3 +94,75 @@ curl 'http://127.0.0.1:8000/api/events?projection=webmercator'
 # 请求 Lambert 投影的领土 GeoJSON
 curl 'http://127.0.0.1:8000/api/territories?projection=lambert'
 ```
+
+## LLM 服务配置
+
+本项目集成了大语言模型（LLM）服务，支持多种模型提供商。
+
+### 环境变量配置
+
+在 `.env` 文件中添加 API Keys：
+
+```bash
+# DashScope (阿里云百炼) API Key
+DASHSCOPE_API_KEY=your_dashscope_api_key_here
+
+# DeepSeek API Key
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+```
+
+### 支持的模型
+
+**DashScope (阿里云百炼):**
+- `qwen-max`: 通义千问 Max 模型
+- `qwen-plus`: 通义千问 Plus 模型
+- `deepseek-r1`: DeepSeek R1 模型（支持思考模式）
+
+**DeepSeek (直连):**
+- `deepseek-chat`: DeepSeek Chat 模型（默认）
+
+### 使用示例
+
+```python
+from src.services.llm import LLMFactory
+
+# 创建工厂实例
+factory = LLMFactory()
+
+# 获取默认模型
+provider = factory.get_provider()
+
+# 发送消息
+messages = [
+    {"role": "user", "content": "介绍1812年拿破仑战争"}
+]
+
+# 非流式响应
+response = provider.chat(messages)
+print(response)
+
+# 流式响应
+for chunk in provider.chat(messages, stream=True):
+    print(chunk, end="", flush=True)
+```
+
+### 测试 LLM 服务
+
+运行测试脚本验证配置：
+
+```bash
+# 测试环境变量加载
+uv run python test_llm_env.py
+
+# 测试 DeepSeek 适配器
+uv run python test_deepseek.py
+
+# 运行完整示例
+uv run python examples/llm_example.py
+```
+
+### 详细文档
+
+- **LLM 服务文档**: `src/services/llm/README.md`
+- **API 接口文档**: `doc/interface.md`
+- **配置文件**: `config/llm.yaml`

@@ -39,6 +39,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from src.api.events import router as events_router
 from src.api.flows import router as flows_router
+from src.api.llm import router as llm_router
 from src.api.maps import router as maps_router
 from src.api.movements import router as movements_router
 from src.api.statistics import router as statistics_router
@@ -96,6 +97,7 @@ app.include_router(statistics_router, prefix="/api")
 app.include_router(story_router, prefix="/api")
 app.include_router(maps_router, prefix="/api")
 app.include_router(temperature_router, prefix="/api")
+app.include_router(llm_router, prefix="/api")
 
 
 @app.get("/")
