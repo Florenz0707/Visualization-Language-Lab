@@ -236,7 +236,7 @@ const loadAllMapLayers = async () => {
 
   for (const layerId of mapLayerTypes) {
     try {
-      const response = await fetch(`http://localhost:9000/api/maps/${layerId}?simplify=false`)
+      const response = await fetch(`http://localhost:9000/api/maps/${layerId}?simplify=true`)
       const data = await response.json()
 
       // Create layer but don't add to map yet
