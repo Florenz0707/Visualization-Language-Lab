@@ -3,7 +3,6 @@
     <nav class="nav-bar">
       <router-link to="/" class="nav-link">2D地图</router-link>
       <router-link to="/3d" class="nav-link">3D地图</router-link>
-      <router-link to="/napoleon" class="nav-link">拿破仑战役</router-link>
     </nav>
     <router-view />
   </div>

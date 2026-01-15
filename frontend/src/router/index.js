@@ -13,18 +13,13 @@ const routes = [
   {
     path: '/3d',
     name: '3DMap',
-    component: Map3D
+    component: NapoleonVisualization
   },
   {
     path: '/demo',
     name: 'MapDemo',
     component: MapDemo
   },
-  {
-    path: '/napoleon',
-    name: 'Napoleon',
-    component: NapoleonVisualization
-  }
 ]
 
 const router = createRouter({

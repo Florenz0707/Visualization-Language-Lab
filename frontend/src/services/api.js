@@ -110,35 +110,40 @@ export const getTTSAudioUrl = (chapterId) => {
 export const analyzeRoute = async (params) => {
   try {
     const prompt = `
-请分析以下战况：
+请基于以下信息分析1812年卫国战争（俄法战争）的特定时刻：
+
 1. **时间**: ${params.date}
 2. **坐标**: 经度 ${params.lon.toFixed(2)}, 纬度 ${params.lat.toFixed(2)} (东欧平原/俄罗斯西部)
-3. **状态**: 法军正在 ${params.type}
-4. **地形参考**: ${params.terrain_hint}
+3. **法军动向**: 正在 ${params.type}
+4. **地形特征**: ${params.terrain_hint}
 
-请生成一段简短的分析（200字以内），内容包括：
-- **地理环境**: 该位置附近是否有重要河流（如别列津纳河、第聂伯河）或特殊地形？
-- **军事态势**: 此时法军面临的主要困难是什么？
-- **历史意义**: 这一阶段对战争成败有何影响？
+请生成一段简短精炼的战况分析（200字以内），请务必包含以下维度的辩证思考：
 
-请用沉稳、专业的历史纪录片旁白口吻回答。
+- **地形与季节气候**: 
+  结合当时的月份（6-9月为夏秋，10-12月为冬），分析气温（酷热、泥泞或严寒）以及地形（河流、森林、平原）对法军的具体影响。
+
+- **军事态势与成败分析**:
+  如果是【进攻阶段】（10月中旬前）：
+  请重点分析法军取得的**战术胜利**（如攻占关键城市、赢得战斗、推进速度快）以及**成功的原因**（如拿破仑的指挥艺术、法军的高昂士气）。同时，辩证地指出潜在的**战略隐患**（如补给线拉长、非战斗减员）。**不要一味强调困难，要体现法军前期的强势。**
+  
+  如果是【撤退阶段】（10月中旬后）：
+  请分析导致法军**失败或崩溃的核心原因**（是俄军的游击战、焦土政策，还是极端天气？），以及法军在绝境中的突围努力。
+
+- **历史评述**: 
+  用一句话总结这一刻对整个战争走向的关键意义。
+
+语调要求：沉稳、专业，类似历史纪录片旁白，既要看到胜利的光辉，也要看到失败的阴影。
     `.trim()
 
-    const response = await apiClient.post('/api/llm/chat', {
-      messages: [
-        {
-          role: 'system',
-          content: '你是一位精通1812年拿破仑俄法战争的军事历史学家和地理学家。请基于用户提供的坐标、时间和地形数据进行专业分析。'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+    const result = await apiClient.post('/api/llm/chat', {
+      message: '你是一位精通1812年拿破仑俄法战争的军事历史学家。请结合时间、地点、地形和气候，对法军的战况进行客观、辩证的深度分析。',
+      system_prompt: prompt
     })
 
+    console.log('LLM response:', result)
+
     return {
-      analysis: response.data.content || response.data.message || '分析完成'
+      analysis: result.data.response || '分析完成'
     }
   } catch (error) {
     console.error('API call failed:', error)
