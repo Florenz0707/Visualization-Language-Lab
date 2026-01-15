@@ -54,6 +54,3 @@
   "sources": ["Minard1869", "ArchiveX"]
 }
 ```
-
-维护建议
-- 生产环境中建议对 `confidence` 值进行一致性校验（0-1），并在数据生成脚本中保留 `sources` 与处理日志字段。

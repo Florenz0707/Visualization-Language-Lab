@@ -90,13 +90,3 @@ curl 'http://127.0.0.1:8000/api/events?projection=webmercator'
 # 请求 Lambert 投影的领土 GeoJSON
 curl 'http://127.0.0.1:8000/api/territories?projection=lambert'
 ```
-
-后续建议
-
-- 若要提高查询性能，可将 GeoJSON 导入 PostGIS 并实现空间索引。
-- 可以为 `/api/terrain/dem` 等加入动态裁剪与图片切片支持以减少在线计算。
-- 根据需要增加时间分片导出（每月/每周 territories 快照）以支持时序动画。
-
-如果需要，我可以接着：
-- 实现更多 API（例如 `/api/terrain/*`、统计端点）并添加单元测试；或
-- 把当前改动提交到 Git（帮你准备 commit 消息）。
