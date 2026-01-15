@@ -1,20 +1,23 @@
 import argparse
 import math
 import sys
+
 import numpy as np
-import rasterio
 import plotly.graph_objs as go
+import rasterio
 
 
 def read_raster(fp):
     with rasterio.open(fp) as src:
         print(f"打开: {fp}")
-        print(f"  CRS: {src.crs}, size: {src.width}x{src.height}, transform: {src.transform}, nodatavals: {src.nodatavals}")
+        print(
+            f"  CRS: {src.crs}, size: {src.width}x{src.height}, transform: {src.transform}, nodatavals: {src.nodatavals}"
+        )
         data = src.read(1).astype(np.float32)
         transform = src.transform
         meta = src.meta.copy()
     # 将 nodata 转为 nan
-    nod = meta.get('nodata', None)
+    nod = meta.get("nodata", None)
     if nod is None:
         # rasterio may not keep nodata in meta
         try:
@@ -28,6 +31,7 @@ def read_raster(fp):
 
 
 # ------------------ 平滑函数（对 NaN 友好，使用可分离一维卷积） ------------------
+
 
 def gaussian_kernel_1d(sigma: float):
     if sigma <= 0:
@@ -58,9 +62,9 @@ def separable_filter_1d(arr: np.ndarray, kernel: np.ndarray) -> np.ndarray:
     for i in range(arr.shape[0]):
         row = arr[i, :]
         mask = np.isfinite(row).astype(np.float64)
-        num = np.convolve(np.nan_to_num(row, 0.0), k, mode='same')
-        den = np.convolve(mask, k, mode='same')
-        with np.errstate(invalid='ignore', divide='ignore'):
+        num = np.convolve(np.nan_to_num(row, 0.0), k, mode="same")
+        den = np.convolve(mask, k, mode="same")
+        with np.errstate(invalid="ignore", divide="ignore"):
             out_row = np.where(den > 0, num / den, np.nan)
         out[i, :] = out_row
 
@@ -69,9 +73,9 @@ def separable_filter_1d(arr: np.ndarray, kernel: np.ndarray) -> np.ndarray:
     for j in range(out.shape[1]):
         col = out[:, j]
         mask = np.isfinite(col).astype(np.float64)
-        num = np.convolve(np.nan_to_num(col, 0.0), k, mode='same')
-        den = np.convolve(mask, k, mode='same')
-        with np.errstate(invalid='ignore', divide='ignore'):
+        num = np.convolve(np.nan_to_num(col, 0.0), k, mode="same")
+        den = np.convolve(mask, k, mode="same")
+        with np.errstate(invalid="ignore", divide="ignore"):
             out_col = np.where(den > 0, num / den, np.nan)
         out2[:, j] = out_col
 
@@ -134,7 +138,7 @@ def meters_to_deg(elev_m, lat_mean):
 def to_chinese_lon_text(vals):
     texts = []
     for v in vals:
-        hemi = '东经' if v >= 0 else '西经'
+        hemi = "东经" if v >= 0 else "西经"
         texts.append(f"{hemi}{abs(v):.2f}°")
     return texts
 
@@ -142,7 +146,7 @@ def to_chinese_lon_text(vals):
 def to_chinese_lat_text(vals):
     texts = []
     for v in vals:
-        hemi = '北纬' if v >= 0 else '南纬'
+        hemi = "北纬" if v >= 0 else "南纬"
         texts.append(f"{hemi}{abs(v):.2f}°")
     return texts
 
@@ -163,36 +167,64 @@ def build_mesh(lon, lat, elev):
             v1 = v0 + 1
             v2 = v0 + cols
             v3 = v2 + 1
-            i[t] = v0; j[t] = v2; k[t] = v1; t += 1
-            i[t] = v1; j[t] = v2; k[t] = v3; t += 1
-    mesh = go.Mesh3d(x=x, y=y, z=z, i=i.tolist(), j=j.tolist(), k=k.tolist(), intensity=z, colorscale='Viridis', colorbar=dict(title='Elevation (m)'), hoverinfo='skip')
+            i[t] = v0
+            j[t] = v2
+            k[t] = v1
+            t += 1
+            i[t] = v1
+            j[t] = v2
+            k[t] = v3
+            t += 1
+    mesh = go.Mesh3d(
+        x=x,
+        y=y,
+        z=z,
+        i=i.tolist(),
+        j=j.tolist(),
+        k=k.tolist(),
+        intensity=z,
+        colorscale="Viridis",
+        colorbar=dict(title="Elevation (m)"),
+        hoverinfo="skip",
+    )
     return mesh
 
 
 def build_surface(lon, lat, elev):
-    surf = go.Surface(x=lon, y=lat, z=elev, cmin=float(np.nanpercentile(elev, 1)), cmax=float(np.nanpercentile(elev, 99)), colorscale='Viridis', colorbar=dict(title='Elevation (m)'), hovertemplate='Lon: %{x:.4f}<br>Lat: %{y:.4f}<br>Elev: %{z:.2f} m<extra></extra>')
+    surf = go.Surface(
+        x=lon,
+        y=lat,
+        z=elev,
+        cmin=float(np.nanpercentile(elev, 1)),
+        cmax=float(np.nanpercentile(elev, 99)),
+        colorscale="Viridis",
+        colorbar=dict(title="Elevation (m)"),
+        hovertemplate="Lon: %{x:.4f}<br>Lat: %{y:.4f}<br>Elev: %{z:.2f} m<extra></extra>",
+    )
     return surf
 
 
-def render_3d(lon, lat, elev, out_html, mode='mesh', static=False):
+def render_3d(lon, lat, elev, out_html, mode="mesh", static=False):
     # prepare axis ticks
-    min_lon = float(np.nanmin(lon)); max_lon = float(np.nanmax(lon))
-    min_lat = float(np.nanmin(lat)); max_lat = float(np.nanmax(lat))
+    min_lon = float(np.nanmin(lon))
+    max_lon = float(np.nanmax(lon))
+    min_lat = float(np.nanmin(lat))
+    max_lat = float(np.nanmax(lat))
     xvals = np.linspace(min_lon, max_lon, num=6).tolist()
     yvals = np.linspace(min_lat, max_lat, num=6).tolist()
     xtexts = to_chinese_lon_text(xvals)
     ytexts = to_chinese_lat_text(yvals)
 
-    if mode == 'mesh':
-        print('构建 Mesh3D')
+    if mode == "mesh":
+        print("构建 Mesh3D")
         mesh = build_mesh(lon, lat, elev)
         data = [mesh]
-        title = '3D Terrain (Mesh3D)'
+        title = "3D Terrain (Mesh3D)"
     else:
-        print('构建 Surface')
+        print("构建 Surface")
         surf = build_surface(lon, lat, elev)
         data = [surf]
-        title = '3D Terrain (Surface)'
+        title = "3D Terrain (Surface)"
 
     # build grid lines at z = min(elev) - small offset
     z0 = float(np.nanmin(elev))
@@ -200,44 +232,99 @@ def render_3d(lon, lat, elev, out_html, mode='mesh', static=False):
     step_lon = (max_lon - min_lon) / 6.0
     step_lat = (max_lat - min_lat) / 6.0
     for lon_v in np.arange(min_lon, max_lon + 1e-9, step_lon):
-        grid_lines.append(go.Scatter3d(x=[lon_v, lon_v], y=[min_lat, max_lat], z=[z0 - 1e-6, z0 - 1e-6], mode='lines', line=dict(color='black', width=1), showlegend=False, hoverinfo='none'))
+        grid_lines.append(
+            go.Scatter3d(
+                x=[lon_v, lon_v],
+                y=[min_lat, max_lat],
+                z=[z0 - 1e-6, z0 - 1e-6],
+                mode="lines",
+                line=dict(color="black", width=1),
+                showlegend=False,
+                hoverinfo="none",
+            )
+        )
     for lat_v in np.arange(min_lat, max_lat + 1e-9, step_lat):
-        grid_lines.append(go.Scatter3d(x=[min_lon, max_lon], y=[lat_v, lat_v], z=[z0 - 1e-6, z0 - 1e-6], mode='lines', line=dict(color='black', width=1), showlegend=False, hoverinfo='none'))
+        grid_lines.append(
+            go.Scatter3d(
+                x=[min_lon, max_lon],
+                y=[lat_v, lat_v],
+                z=[z0 - 1e-6, z0 - 1e-6],
+                mode="lines",
+                line=dict(color="black", width=1),
+                showlegend=False,
+                hoverinfo="none",
+            )
+        )
 
     data += grid_lines
 
-    layout = go.Layout(title=title, scene=dict(xaxis=dict(title='经度', tickvals=xvals, ticktext=xtexts), yaxis=dict(title='纬度', tickvals=yvals, ticktext=ytexts), zaxis=dict(title='海拔 (m)'), aspectmode='auto', camera=dict(eye=dict(x=1.0, y=-1.5, z=0.8), projection=dict(type='orthographic'))), margin=dict(l=0, r=0, t=30, b=0))
+    layout = go.Layout(
+        title=title,
+        scene=dict(
+            xaxis=dict(title="经度", tickvals=xvals, ticktext=xtexts),
+            yaxis=dict(title="纬度", tickvals=yvals, ticktext=ytexts),
+            zaxis=dict(title="海拔 (m)"),
+            aspectmode="auto",
+            camera=dict(
+                eye=dict(x=1.0, y=-1.5, z=0.8), projection=dict(type="orthographic")
+            ),
+        ),
+        margin=dict(l=0, r=0, t=30, b=0),
+    )
 
     fig = go.Figure(data=data, layout=layout)
     if static:
-        fig.write_html(out_html, include_plotlyjs='cdn', config={'staticPlot': True})
+        fig.write_html(out_html, include_plotlyjs="cdn", config={"staticPlot": True})
     else:
-        fig.write_html(out_html, include_plotlyjs='cdn')
+        fig.write_html(out_html, include_plotlyjs="cdn")
     print(f"写出 HTML: {out_html} (mode={mode}, static={static})")
 
 
 def main(argv):
     p = argparse.ArgumentParser()
-    p.add_argument('--file', type=str, required=True, help='输入单个 GeoTIFF (DSM) 文件路径，例如 merged_dem_cropped.tif')
-    p.add_argument('--out', type=str, default='terrain3d.html', help='输出 HTML 文件')
-    p.add_argument('--render', type=str, default='mesh', choices=['mesh','surface'], help='渲染模式：mesh 或 surface')
-    p.add_argument('--downsample', type=int, default=1, help='手动下采样因子')
-    p.add_argument('--max-verts', type=int, default=150000, help='目标最大顶点数（超出会自动下采样）')
-    p.add_argument('--auto-z', action='store_true', help='把米转换为度（近似），使高度在经纬度坐标系下更可见')
-    p.add_argument('--z-exag', type=float, default=1.0, help='Z 轴放大倍数（在 auto-z 开启时是额外放大）')
-    p.add_argument('--static', action='store_true', help='输出静态 HTML（禁用交互）')
-    p.add_argument('--smooth', type=str, default='none', choices=['none','box','gaussian'], help='是否进行平滑处理（none/box/gaussian）')
-    p.add_argument('--smooth-k', type=int, default=3, help='box 平滑时的窗口大小（odd integer, e.g. 3,5,7）')
-    p.add_argument('--smooth-sigma', type=float, default=1.0, help='gaussian 平滑时的 sigma（像素单位）')
+    p.add_argument(
+        "--file",
+        type=str,
+        required=True,
+        help="输入单个 GeoTIFF (DSM) 文件路径，例如 merged_dem_cropped.tif",
+    )
+    p.add_argument("--out", type=str, default="terrain3d.html", help="输出 HTML 文件")
+    p.add_argument(
+        "--render",
+        type=str,
+        default="mesh",
+        choices=["mesh", "surface"],
+        help="渲染模式：mesh 或 surface",
+    )
+    p.add_argument("--downsample", type=int, default=1, help="手动下采样因子")
+    p.add_argument("--max-verts", type=int, default=150000, help="目标最大顶点数（超出会自动下采样）")
+    p.add_argument("--auto-z", action="store_true", help="把米转换为度（近似），使高度在经纬度坐标系下更可见")
+    p.add_argument(
+        "--z-exag", type=float, default=1.0, help="Z 轴放大倍数（在 auto-z 开启时是额外放大）"
+    )
+    p.add_argument("--static", action="store_true", help="输出静态 HTML（禁用交互）")
+    p.add_argument(
+        "--smooth",
+        type=str,
+        default="none",
+        choices=["none", "box", "gaussian"],
+        help="是否进行平滑处理（none/box/gaussian）",
+    )
+    p.add_argument(
+        "--smooth-k", type=int, default=3, help="box 平滑时的窗口大小（odd integer, e.g. 3,5,7）"
+    )
+    p.add_argument(
+        "--smooth-sigma", type=float, default=1.0, help="gaussian 平滑时的 sigma（像素单位）"
+    )
     args = p.parse_args(argv)
 
     data, transform, meta = read_raster(args.file)
-    print('原始形状:', data.shape)
+    print("原始形状:", data.shape)
 
     # 平滑（在下采样前进行以避免别名）
-    if args.smooth != 'none':
+    if args.smooth != "none":
         print(f"开始平滑：mode={args.smooth}")
-        if args.smooth == 'box':
+        if args.smooth == "box":
             k = max(1, args.smooth_k)
             if k % 2 == 0:
                 print("警告?：建议使用奇数窗口大小，已自动加 1")
@@ -258,14 +345,21 @@ def main(argv):
 
     if args.downsample > 1:
         data = downsample(data, args.downsample)
-        transform = rasterio.Affine(transform.a * args.downsample, transform.b, transform.c, transform.d, transform.e * args.downsample, transform.f)
-        print('下采样后形状:', data.shape)
+        transform = rasterio.Affine(
+            transform.a * args.downsample,
+            transform.b,
+            transform.c,
+            transform.d,
+            transform.e * args.downsample,
+            transform.f,
+        )
+        print("下采样后形状:", data.shape)
 
     lon, lat = compute_lonlat(transform, data.shape[0], data.shape[1])
 
     # 处理 nodata
     if not np.isfinite(data).any():
-        print('ERROR: 读到的数据无有效值，退出')
+        print("ERROR: 读到的数据无有效值，退出")
         sys.exit(1)
 
     elev = data
@@ -280,5 +374,5 @@ def main(argv):
     render_3d(lon, lat, elev_plot, args.out, mode=args.render, static=args.static)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(sys.argv[1:])
