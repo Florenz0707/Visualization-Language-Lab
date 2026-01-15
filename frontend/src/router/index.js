@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/components/Dashboard.vue'
 import Map3D from '@/components/3DMap.vue'
 import MapDemo from '@/components/MapDemo.vue'
+import NapoleonVisualization from '@/components/NapoleonVisualization.vue'
 
 const routes = [
   {
@@ -18,6 +19,11 @@ const routes = [
     path: '/demo',
     name: 'MapDemo',
     component: MapDemo
+  },
+  {
+    path: '/napoleon',
+    name: 'Napoleon',
+    component: NapoleonVisualization
   }
 ]
 
