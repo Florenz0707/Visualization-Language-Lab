@@ -43,6 +43,12 @@
         </div>
       </div>
 
+      <!-- 新增：兵力对比饼状图容器 -->
+      <div class="chart-container" v-if="currentFrenchCount !== '-' && currentRussianCount !== '-'">
+        <h4 class="chart-title">兵力占比对比</h4>
+        <div id="troop-pie-chart"></div>
+      </div>
+
       <div class="current-time-display">
         <span class="time-label">当前时间:</span>
         <span class="time-value">{{ formatDate(mapStore.currentTime) }}</span>
@@ -52,9 +58,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useMapStore } from '@/stores/map'
 import { fetchTroopStatistics } from '@/services/api'
+import * as d3 from 'd3'
 
 const mapStore = useMapStore()
 const loading = ref(false)
@@ -160,6 +167,109 @@ const formatDate = (date) => {
   })
 }
 
+// 初始化/更新饼状图
+const updatePieChart = () => {
+  // 确保有有效数据
+  if (currentFrenchData.value?.count === undefined || currentRussianData.value?.count === undefined) {
+    return
+  }
+
+  const frenchCount = currentFrenchData.value.count
+  const russianCount = currentRussianData.value.count
+  const total = frenchCount + russianCount
+
+  // 移除旧图表
+  d3.select('#troop-pie-chart').selectAll('*').remove()
+
+  // 图表尺寸
+  const width = 360
+  const height = 220
+  const radius = Math.min(width, height) / 2.5
+
+  // 创建SVG容器
+  const svg = d3.select('#troop-pie-chart')
+    .append('svg')
+    .attr('width', width)
+    .attr('height', height)
+    .append('g')
+    .attr('transform', `translate(${width / 2}, ${height / 2})`)
+
+  // 定义颜色
+  const color = d3.scaleOrdinal()
+    .domain(['法军', '俄军'])
+    .range(['#3b82f6', '#ef4444'])
+
+  // 准备数据
+  const data = [
+    { name: '法军', value: frenchCount },
+    { name: '俄军', value: russianCount }
+  ]
+
+  // 创建饼图生成器
+  const pie = d3.pie()
+    .value(d => d.value)
+    .sort(null)
+
+  // 创建弧生成器
+  const arc = d3.arc()
+    .innerRadius(radius * 0.4) // 内环半径（甜甜圈效果）
+    .outerRadius(radius)
+
+  // 创建外部标签弧生成器
+  const labelArc = d3.arc()
+    .innerRadius(radius * 1.1)
+    .outerRadius(radius * 1.1)
+
+  // 绘制饼图路径
+  const paths = svg.selectAll('path')
+    .data(pie(data))
+    .enter()
+    .append('path')
+    .attr('d', arc)
+    .attr('fill', d => color(d.data.name))
+    .attr('stroke', 'white')
+    .style('stroke-width', '2px')
+    .style('opacity', 0.8)
+    // 添加鼠标悬浮效果
+    .on('mouseover', function() {
+      d3.select(this).style('opacity', 1)
+    })
+    .on('mouseout', function() {
+      d3.select(this).style('opacity', 0.8)
+    })
+
+  // 添加百分比标签
+  svg.selectAll('text')
+    .data(pie(data))
+    .enter()
+    .append('text')
+    .attr('transform', d => `translate(${labelArc.centroid(d)})`)
+    .attr('dy', '.35em')
+    .style('text-anchor', 'middle')
+    .style('font-size', '12px')
+    .style('font-weight', '600')
+    .text(d => {
+      const percent = ((d.value / total) * 100).toFixed(1)
+      return `${d.data.name} ${percent}%`
+    })
+
+  // 添加中心文本
+  svg.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('dy', '0em')
+    .style('font-size', '14px')
+    .style('font-weight', '700')
+    .style('color', '#1e293b')
+    .text(`总计 ${total.toLocaleString()}`)
+  
+  svg.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('dy', '1.5em')
+    .style('font-size', '12px')
+    .style('color', '#64748b')
+    .text('兵力总数')
+}
+
 const loadStatistics = async () => {
   loading.value = true
   error.value = null
@@ -174,6 +284,11 @@ const loadStatistics = async () => {
 
     console.log('Statistics API response:', data)
     statisticsData.value = data
+    
+    // 数据加载完成后更新饼图
+    nextTick(() => {
+      updatePieChart()
+    })
   } catch (err) {
     error.value = '加载统计数据失败'
     console.error('Error loading statistics:', err)
@@ -185,6 +300,24 @@ const loadStatistics = async () => {
 onMounted(() => {
   console.log('StatisticsPanel mounted')
   loadStatistics()
+})
+
+// 监听时间变化更新饼图
+watch([currentFrenchData, currentRussianData], () => {
+  if (!isCollapsed.value && currentFrenchCount.value !== '-' && currentRussianCount.value !== '-') {
+    nextTick(() => {
+      updatePieChart()
+    })
+  }
+}, { deep: true })
+
+// 监听折叠状态变化更新饼图
+watch(isCollapsed, (newVal) => {
+  if (!newVal && currentFrenchCount.value !== '-' && currentRussianCount.value !== '-') {
+    nextTick(() => {
+      updatePieChart()
+    })
+  }
 })
 
 watch(() => mapStore.timeRange, () => {
@@ -360,6 +493,29 @@ watch(() => mapStore.timeRange, () => {
   font-size: 11px;
   color: #64748b;
   margin-top: 4px;
+}
+
+/* 新增：饼图容器样式 */
+.chart-container {
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin: 8px 0;
+}
+
+.chart-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  text-align: center;
+}
+
+#troop-pie-chart {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .current-time-display {

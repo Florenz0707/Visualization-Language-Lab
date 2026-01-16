@@ -17,13 +17,33 @@
 
       <div class="legend-section">
         <div class="legend-title">关键地点 (箭头类型)</div>
-        <div class="legend-item"><span class="icon dot-capital"></span> 首都/重镇</div>
-        <div class="legend-item"><span class="icon dot-battle"></span> 关键战役</div>
-        <div class="legend-item"><span class="icon dot-city"></span> 普通城市</div>
+        <div class="legend-item"><span class="icon dot-capital"></span> 关键战役</div>
+        <div class="legend-item"><span class="icon dot-battle"></span> 首都/重镇</div>
+        <div class="legend-item"><span class="icon dot-city"></span> 事件（降雪，焦土政策等）</div>
       </div>
 
       <div class="legend-section">
         <div class="legend-item"><span class="icon highlight-box"></span> 选中高亮</div>
+      </div>
+
+      <div class="legend-section chart-section">
+        <div class="chart-header">
+          <span class="chart-label" style="color:#3498db;">■ 法军兵力</span>
+          <span id="french-val" class="chart-value">--</span>
+        </div>
+        <div id="chart-french" class="mini-chart"></div>
+
+        <div class="chart-header">
+          <span class="chart-label" style="color:#2ecc71;">■ 俄军兵力</span>
+          <span id="russian-val" class="chart-value">--</span>
+        </div>
+        <div id="chart-russian" class="mini-chart"></div>
+
+        <div class="chart-header">
+          <span class="chart-label" style="color:#9b59b6;">■ 兵力对比 (法/俄)</span>
+          <span id="ratio-val" class="chart-value">--</span>
+        </div>
+        <div id="chart-ratio" class="mini-chart"></div>
       </div>
 
       <div class="tips">
@@ -71,6 +91,9 @@ const showAnalysisPanel = ref(false)
 const analysisContent = ref('<p style="text-align:center; color:#666;">点击地图上的路线以查看分析。</p>')
 const is2DMode = ref(false)
 
+// --- Data ---
+let troopsData = [] // 存储处理后的兵力数据
+
 // --- Three.js Variables ---
 let scene, camera, renderer, labelRenderer, controls
 let terrainMesh
@@ -83,6 +106,13 @@ let animationFrameId = null
 let d3Handle = null
 let d3XScale = null
 let d3Dates = []
+
+// 图表对象存储，用于更新指示器
+const charts = {
+  french: { svg: null, indicator: null, xScale: null, yScale: null },
+  russian: { svg: null, indicator: null, xScale: null, yScale: null },
+  ratio: { svg: null, indicator: null, xScale: null, yScale: null }
+}
 
 // --- Raycaster ---
 const raycaster = new THREE.Raycaster()
@@ -137,8 +167,29 @@ watch(currentTimeIndex, (newVal) => {
     currentDate.value = timelineData.value[newVal]
     updateRouteVisibility(newVal)
     updateD3HandlePosition(newVal)
+    updateAllChartsIndicator(newVal) // 更新三个图表的指示器
   }
 })
+
+// --- Data Processing (修改) ---
+function processTroopsData(gameData) {
+  const parseDate = d3.timeParse("%Y-%m-%d")
+  
+  // 过滤出有兵力数据的节点 (包含 french_troops 字段)
+  const nodesWithTroops = gameData.cities.filter(c => c.french_troops !== undefined)
+  
+  troopsData = gameData.timeline.map((dateStr, i) => {
+    // 假设 timeline 顺序与 events_gdf 顺序一致，直接取对应索引
+    const node = nodesWithTroops[i]
+    return {
+      date: parseDate(dateStr),
+      french: node ? node.french_troops : 0,
+      russian: node ? node.russian_troops : 0,
+      ratio: node ? node.force_ratio : 0,
+      idx: i
+    }
+  })
+}
 
 // --- D3 Logic ---
 
@@ -224,6 +275,115 @@ function initD3Timeline(gameData) {
     const index = d3.bisector(d => d).left(d3Dates, date)
     currentTimeIndex.value = Math.min(index, d3Dates.length - 1)
   })
+}
+
+// --- 新增：绘制三个折线图 ---
+function drawAllCharts() {
+  if (troopsData.length === 0) return
+
+  // 绘制法军图表
+  drawSingleChart('chart-french', 'french', '#3498db', charts.french)
+  // 绘制俄军图表
+  drawSingleChart('chart-russian', 'russian', '#2ecc71', charts.russian)
+  // 绘制对比系数图表
+  drawSingleChart('chart-ratio', 'ratio', '#9b59b6', charts.ratio)
+}
+
+function drawSingleChart(containerId, dataKey, color, chartObj) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  container.innerHTML = ""
+  
+  const width = container.clientWidth
+  const height = 50 // 小图高度
+  const margin = { top: 5, right: 5, bottom: 5, left: 5 }
+
+  const svg = d3.select(container)
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height)
+
+  const xScale = d3.scaleTime()
+    .domain(d3.extent(troopsData, d => d.date))
+    .range([margin.left, width - margin.right])
+
+  const yScale = d3.scaleLinear()
+    .domain([0, d3.max(troopsData, d => d[dataKey])])
+    .range([height - margin.bottom, margin.top])
+
+  // 折线生成器
+  const line = d3.line()
+    .x(d => xScale(d.date))
+    .y(d => yScale(d[dataKey]))
+    .curve(d3.curveMonotoneX)
+
+  // 绘制折线
+  svg.append("path")
+    .datum(troopsData)
+    .attr("fill", "none")
+    .attr("stroke", color)
+    .attr("stroke-width", 1.5)
+    .attr("d", line)
+
+  // 绘制面积阴影 (可选，增加美观度)
+  const area = d3.area()
+    .x(d => xScale(d.date))
+    .y0(height - margin.bottom)
+    .y1(d => yScale(d[dataKey]))
+    .curve(d3.curveMonotoneX)
+
+  svg.append("path")
+    .datum(troopsData)
+    .attr("fill", color)
+    .attr("fill-opacity", 0.1)
+    .attr("d", area)
+
+  // 指示器
+  const indicator = svg.append("g").style("display", "none")
+  
+  indicator.append("line")
+    .attr("y1", 0)
+    .attr("y2", height)
+    .attr("stroke", "#666")
+    .attr("stroke-width", 1)
+    .attr("stroke-dasharray", "2,2")
+
+  indicator.append("circle")
+    .attr("r", 3)
+    .attr("fill", color)
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 1)
+
+  // 保存引用以便更新
+  chartObj.svg = svg
+  chartObj.indicator = indicator
+  chartObj.xScale = xScale
+  chartObj.yScale = yScale
+}
+
+// --- 新增：更新所有图表指示器 ---
+function updateAllChartsIndicator(index) {
+  if (!troopsData[index]) return
+  const d = troopsData[index]
+
+  // 更新法军
+  updateSingleIndicator(charts.french, d.date, d.french, 'french-val', d.french.toLocaleString() + ' 人')
+  // 更新俄军
+  updateSingleIndicator(charts.russian, d.date, d.russian, 'russian-val', d.russian.toLocaleString() + ' 人')
+  // 更新比例
+  updateSingleIndicator(charts.ratio, d.date, d.ratio, 'ratio-val', d.ratio + ' : 1')
+}
+
+function updateSingleIndicator(chartObj, date, value, domId, text) {
+  if (chartObj.indicator && chartObj.xScale && chartObj.yScale) {
+    const x = chartObj.xScale(date)
+    const y = chartObj.yScale(value)
+    chartObj.indicator.style("display", null)
+    chartObj.indicator.attr("transform", `translate(${x}, 0)`)
+    chartObj.indicator.select("circle").attr("cy", y)
+  }
+  const dom = document.getElementById(domId)
+  if (dom) dom.innerText = text
 }
 
 function drawElevationChart(routePath) {
@@ -388,7 +548,13 @@ async function loadResources() {
 
     if (gameData && gameData.timeline) {
       timelineData.value = gameData.timeline
-      setTimeout(() => initD3Timeline(gameData), 0)
+      processTroopsData(gameData) // 处理兵力数据
+      setTimeout(() => {
+          initD3Timeline(gameData)
+          drawAllCharts() // 绘制所有兵力图
+          // 初始化显示第一帧兵力
+          updateAllChartsIndicator(0)
+      }, 0)
     }
 
     buildWorld(heightMap, textureMap, gameData)
@@ -717,6 +883,9 @@ function onResize() {
   labelRenderer.setSize(window.innerWidth, window.innerHeight)
   if (timelineData.value.length > 0) {
     initD3Timeline({ timeline: timelineData.value })
+    // 重绘兵力图
+    drawAllCharts()
+    updateAllChartsIndicator(currentTimeIndex.value)
   }
 }
 
@@ -810,6 +979,38 @@ function animate() {
   margin-bottom: 4px;
   font-size: 13px;
   color: #333;
+}
+
+/* 新增/修改：图表区域样式 */
+.chart-section {
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+    margin-top: 5px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+  font-size: 11px;
+}
+
+.chart-label {
+  font-weight: bold;
+}
+
+.chart-value {
+  color: #333;
+  font-family: monospace;
+}
+
+.mini-chart {
+    width: 100%;
+    height: 50px;
+    margin-bottom: 8px;
+    background: rgba(0,0,0,0.02);
+    border-radius: 4px;
 }
 
 /* 图例图标样式 */
