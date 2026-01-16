@@ -10,9 +10,19 @@
       <h3>1812 俄法战争</h3>
       
       <div class="legend-section">
-        <div class="legend-title">战略阶段 (箭头颜色)</div>
-        <div class="legend-item"><span class="icon line-attack"></span> 进攻 (10.10前)</div>
-        <div class="legend-item"><span class="icon line-retreat"></span> 撤退 (10.10后)</div>
+        <div class="legend-title">战略阶段 (勾选筛选显示)</div>
+        <div class="legend-item clickable">
+          <label>
+            <input type="checkbox" v-model="showAllAttack">
+            <span class="icon line-attack"></span> 显示所有进攻路线
+          </label>
+        </div>
+        <div class="legend-item clickable">
+          <label>
+            <input type="checkbox" v-model="showAllRetreat">
+            <span class="icon line-retreat"></span> 显示所有撤退路线
+          </label>
+        </div>
       </div>
 
       <div class="legend-section">
@@ -47,13 +57,17 @@
       </div>
 
       <div class="tips">
+        * 勾选上方复选框可查看完整路线<br>
         * 拖动 D3 时间轴跳转日期<br>
         * 点击地图上的路线查看地形与分析
       </div>
     </div>
 
     <div id="timeline-container">
-      <div id="date-display">{{ currentDate }}</div>
+      <div id="date-display">
+        {{ currentDate }}
+        <div class="event-name">{{ currentEventName }}</div>
+      </div>
       <div id="d3-timeline" ref="d3TimelineRef"></div>
     </div>
 
@@ -85,14 +99,19 @@ const elevationChartRef = ref(null)
 
 const loading = ref(true)
 const currentDate = ref('1812-06-24')
+const currentEventName = ref('')
 const currentTimeIndex = ref(0)
 const timelineData = ref([])
 const showAnalysisPanel = ref(false)
 const analysisContent = ref('<p style="text-align:center; color:#666;">点击地图上的路线以查看分析。</p>')
 const is2DMode = ref(false)
 
+// --- 新增：筛选状态 ---
+const showAllAttack = ref(false)
+const showAllRetreat = ref(false)
+
 // --- Data ---
-let troopsData = [] // 存储处理后的兵力数据
+let troopsData = []
 
 // --- Three.js Variables ---
 let scene, camera, renderer, labelRenderer, controls
@@ -107,7 +126,7 @@ let d3Handle = null
 let d3XScale = null
 let d3Dates = []
 
-// 图表对象存储，用于更新指示器
+// 图表对象存储
 const charts = {
   french: { svg: null, indicator: null, xScale: null, yScale: null },
   russian: { svg: null, indicator: null, xScale: null, yScale: null },
@@ -165,34 +184,39 @@ onUnmounted(() => {
 watch(currentTimeIndex, (newVal) => {
   if (timelineData.value[newVal]) {
     currentDate.value = timelineData.value[newVal]
-    updateRouteVisibility(newVal)
+    if (troopsData[newVal]) {
+      currentEventName.value = troopsData[newVal].name || ''
+    }
+    updateRouteVisibility(newVal) // 更新路线显示
     updateD3HandlePosition(newVal)
-    updateAllChartsIndicator(newVal) // 更新三个图表的指示器
+    updateAllChartsIndicator(newVal)
   }
 })
 
-// --- Data Processing (修改) ---
+// 新增：监听筛选框变化，立即刷新路线
+watch([showAllAttack, showAllRetreat], () => {
+  updateRouteVisibility(currentTimeIndex.value)
+})
+
+// --- Data Processing ---
 function processTroopsData(gameData) {
   const parseDate = d3.timeParse("%Y-%m-%d")
-  
-  // 过滤出有兵力数据的节点 (包含 french_troops 字段)
   const nodesWithTroops = gameData.cities.filter(c => c.french_troops !== undefined)
   
   troopsData = gameData.timeline.map((dateStr, i) => {
-    // 假设 timeline 顺序与 events_gdf 顺序一致，直接取对应索引
     const node = nodesWithTroops[i]
     return {
       date: parseDate(dateStr),
       french: node ? node.french_troops : 0,
       russian: node ? node.russian_troops : 0,
       ratio: node ? node.force_ratio : 0,
+      name: node ? node.n : '',
       idx: i
     }
   })
 }
 
 // --- D3 Logic ---
-
 function initD3Timeline(gameData) {
   const timeline = gameData.timeline
   if (!d3TimelineRef.value) return
@@ -200,7 +224,7 @@ function initD3Timeline(gameData) {
   const container = d3TimelineRef.value
   const width = container.clientWidth
   const height = container.clientHeight
-  const margin = { top: 10, right: 30, bottom: 20, left: 30 }
+  const margin = { top: 10, right: 30, bottom: 40, left: 30 }
 
   d3.select(container).html("")
 
@@ -221,9 +245,33 @@ function initD3Timeline(gameData) {
     .tickFormat(d3.timeFormat("%b %d"))
 
   svg.append("g")
-    .attr("transform", `translate(0, ${height / 2 + 15})`)
+    .attr("transform", `translate(0, ${height / 2 })`)
     .call(xAxis)
     .select(".domain").remove()
+
+  // 事件名称文本
+  const labeledData = troopsData.filter(d => d.name)
+  svg.append("g")
+    .attr("class", "event-labels")
+    .selectAll("text")
+    .data(labeledData)
+    .enter()
+    .append("text")
+    .text(d => d.name)
+    .attr("x", d => d3XScale(d.date))
+    .attr("y", height / 2 + 15)
+    .attr("transform", d => `rotate(30, ${d3XScale(d.date)}, ${height / 2 + 15})`)
+    .style("text-anchor", "start")
+    .style("font-size", "9px")
+    .style("fill", "#666")
+    .style("font-family", "Arial, sans-serif")
+    .style("cursor", "pointer")
+    .on("click", (event, d) => {
+        currentTimeIndex.value = d.idx;
+        if(d3Handle) {
+             d3Handle.transition().duration(200).attr("cx", d3XScale(d.date))
+        }
+    })
 
   const retreatDate = parseDate("1812-10-18")
 
@@ -233,7 +281,7 @@ function initD3Timeline(gameData) {
     .attr("x2", d3XScale(retreatDate))
     .attr("y2", height / 2)
     .attr("stroke", "#d63031")
-    .attr("stroke-width", 12)
+    .attr("stroke-width", 6)
     .attr("stroke-linecap", "round")
     .attr("opacity", 0.6)
 
@@ -243,7 +291,7 @@ function initD3Timeline(gameData) {
     .attr("x2", d3XScale(d3Dates[d3Dates.length - 1]))
     .attr("y2", height / 2)
     .attr("stroke", "#2d3436")
-    .attr("stroke-width", 12)
+    .attr("stroke-width", 6)
     .attr("stroke-linecap", "round")
     .attr("opacity", 0.8)
 
@@ -268,6 +316,8 @@ function initD3Timeline(gameData) {
 
   svg.on("click", function (event) {
     if (event.target.classList.contains('slider-handle')) return
+    if (event.target.tagName === 'text') return 
+
     const coords = d3.pointer(event)
     let newX = Math.max(margin.left, Math.min(width - margin.right, coords[0]))
     d3Handle.transition().duration(200).attr("cx", newX)
@@ -277,15 +327,11 @@ function initD3Timeline(gameData) {
   })
 }
 
-// --- 新增：绘制三个折线图 ---
+// --- Charts ---
 function drawAllCharts() {
   if (troopsData.length === 0) return
-
-  // 绘制法军图表
   drawSingleChart('chart-french', 'french', '#3498db', charts.french)
-  // 绘制俄军图表
   drawSingleChart('chart-russian', 'russian', '#2ecc71', charts.russian)
-  // 绘制对比系数图表
   drawSingleChart('chart-ratio', 'ratio', '#9b59b6', charts.ratio)
 }
 
@@ -295,7 +341,7 @@ function drawSingleChart(containerId, dataKey, color, chartObj) {
   container.innerHTML = ""
   
   const width = container.clientWidth
-  const height = 50 // 小图高度
+  const height = 50 
   const margin = { top: 5, right: 5, bottom: 5, left: 5 }
 
   const svg = d3.select(container)
@@ -311,13 +357,11 @@ function drawSingleChart(containerId, dataKey, color, chartObj) {
     .domain([0, d3.max(troopsData, d => d[dataKey])])
     .range([height - margin.bottom, margin.top])
 
-  // 折线生成器
   const line = d3.line()
     .x(d => xScale(d.date))
     .y(d => yScale(d[dataKey]))
     .curve(d3.curveMonotoneX)
 
-  // 绘制折线
   svg.append("path")
     .datum(troopsData)
     .attr("fill", "none")
@@ -325,7 +369,6 @@ function drawSingleChart(containerId, dataKey, color, chartObj) {
     .attr("stroke-width", 1.5)
     .attr("d", line)
 
-  // 绘制面积阴影 (可选，增加美观度)
   const area = d3.area()
     .x(d => xScale(d.date))
     .y0(height - margin.bottom)
@@ -338,7 +381,6 @@ function drawSingleChart(containerId, dataKey, color, chartObj) {
     .attr("fill-opacity", 0.1)
     .attr("d", area)
 
-  // 指示器
   const indicator = svg.append("g").style("display", "none")
   
   indicator.append("line")
@@ -354,23 +396,17 @@ function drawSingleChart(containerId, dataKey, color, chartObj) {
     .attr("stroke", "#fff")
     .attr("stroke-width", 1)
 
-  // 保存引用以便更新
   chartObj.svg = svg
   chartObj.indicator = indicator
   chartObj.xScale = xScale
   chartObj.yScale = yScale
 }
 
-// --- 新增：更新所有图表指示器 ---
 function updateAllChartsIndicator(index) {
   if (!troopsData[index]) return
   const d = troopsData[index]
-
-  // 更新法军
   updateSingleIndicator(charts.french, d.date, d.french, 'french-val', d.french.toLocaleString() + ' 人')
-  // 更新俄军
   updateSingleIndicator(charts.russian, d.date, d.russian, 'russian-val', d.russian.toLocaleString() + ' 人')
-  // 更新比例
   updateSingleIndicator(charts.ratio, d.date, d.ratio, 'ratio-val', d.ratio + ' : 1')
 }
 
@@ -492,11 +528,9 @@ function initThreeJS() {
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
   
-  // === 设置渲染器以增强亮度和色彩 ===
   renderer.outputEncoding = THREE.sRGBEncoding 
   renderer.toneMapping = THREE.ACESFilmicToneMapping 
   renderer.toneMappingExposure = 1.2
-  // ===================================
 
   canvasContainer.value.appendChild(renderer.domElement)
 
@@ -511,7 +545,6 @@ function initThreeJS() {
   controls.enableDamping = true
   controls.maxPolarAngle = Math.PI / 2 - 0.1
 
-  // === 增强灯光 ===
   const sun = new THREE.DirectionalLight(0xffffee, 1.8)
   sun.position.set(-50, 100, 50)
   sun.castShadow = true
@@ -525,7 +558,6 @@ function initThreeJS() {
   
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.9)
   scene.add(ambientLight)
-  // ==============
 
   animate()
 }
@@ -541,19 +573,20 @@ async function loadResources() {
 
     loading.value = false
     
-    // === 纹理编码 ===
     if (textureMap) {
         textureMap.encoding = THREE.sRGBEncoding
     }
 
     if (gameData && gameData.timeline) {
       timelineData.value = gameData.timeline
-      processTroopsData(gameData) // 处理兵力数据
+      processTroopsData(gameData)
       setTimeout(() => {
           initD3Timeline(gameData)
-          drawAllCharts() // 绘制所有兵力图
-          // 初始化显示第一帧兵力
+          drawAllCharts()
           updateAllChartsIndicator(0)
+          if (troopsData[0]) {
+             currentEventName.value = troopsData[0].name || ''
+          }
       }, 0)
     }
 
@@ -641,7 +674,6 @@ function createRouteTube(points, color, radius) {
   ))
   const curve = new THREE.CatmullRomCurve3(vecs)
   const geo = new THREE.TubeGeometry(curve, points.length * 2, radius, 8, false)
-  // === 增加自发光 ===
   const mat = new THREE.MeshStandardMaterial({ 
       color: color, 
       roughness: 0.4,
@@ -712,7 +744,6 @@ function placeCity(city, routes) {
 }
 
 function createArrow(grp, color, labelObj) {
-  // === 增强箭头自发光 ===
   const arrowMat = new THREE.MeshLambertMaterial({ 
       color: color, 
       emissive: 0x222222,
@@ -753,9 +784,22 @@ function getDateForLocation(x, z, routes) {
   return null
 }
 
+// --- 修改部分：支持复选框筛选所有路线 ---
 function updateRouteVisibility(idx) {
   routeMeshes.forEach(m => {
-    m.visible = m.userData.dateIdx === idx
+    const isAttack = m.userData.type === '进攻'
+    const isRetreat = m.userData.type === '撤退'
+    const isCurrent = m.userData.dateIdx === idx
+    
+    let visible = isCurrent // 默认：时间轴的当前帧始终可见
+
+    // 筛选逻辑：如果勾选了"进攻"且该路线是进攻路线 -> 可见
+    if (isAttack && showAllAttack.value) visible = true
+    
+    // 筛选逻辑：如果勾选了"撤退"且该路线是撤退路线 -> 可见
+    if (isRetreat && showAllRetreat.value) visible = true
+
+    m.visible = visible
   })
   if (selectedRoute && !selectedRoute.visible) {
     selectedRoute.material.emissive.setHex(0x000000)
@@ -883,7 +927,6 @@ function onResize() {
   labelRenderer.setSize(window.innerWidth, window.innerHeight)
   if (timelineData.value.length > 0) {
     initD3Timeline({ timeline: timelineData.value })
-    // 重绘兵力图
     drawAllCharts()
     updateAllChartsIndicator(currentTimeIndex.value)
   }
@@ -952,16 +995,32 @@ function animate() {
   min-width: 160px;
 }
 
+/* 恢复鼠标交互以便点击 Checkbox */
+.legend-section {
+  pointer-events: auto; 
+  margin-bottom: 10px;
+}
+
+/* 新增：让 Checkbox 所在行可以点击 */
+.clickable {
+    cursor: pointer;
+}
+.clickable label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+.clickable input {
+    margin-right: 6px;
+    cursor: pointer;
+}
+
 #ui-layer h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
   color: #2c3e50;
   border-bottom: 1px solid #eee;
   padding-bottom: 5px;
-}
-
-.legend-section {
-  margin-bottom: 10px;
 }
 
 .legend-title {
@@ -1064,7 +1123,7 @@ function animate() {
   left: 50%;
   transform: translateX(-50%);
   width: 70%;
-  height: 110px;
+  height: 140px; /* 增加高度以容纳下方文字 */
   background: rgba(255, 255, 255, 0.95);
   padding: 5px 20px;
   border-radius: 15px;
@@ -1082,6 +1141,17 @@ function animate() {
   color: #333;
   margin-bottom: 2px;
   font-family: 'Times New Roman', serif;
+  text-align: center;
+}
+
+/* 新增：当前事件名称样式 */
+.event-name {
+  font-size: 14px;
+  color: #666;
+  font-weight: normal;
+  margin-top: 4px;
+  font-family: 'Segoe UI', sans-serif;
+  height: 20px; /* 预留高度防止跳动 */
 }
 
 #d3-timeline {
