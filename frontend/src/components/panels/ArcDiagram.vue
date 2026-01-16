@@ -29,49 +29,18 @@
       <button @click="loadEvents" class="retry-btn">刷新</button>
     </div>
 
-    <!-- 事件列表 + 详情区域 -->
-    <div v-else-if="!isCollapsed" class="events-container">
-      <div class="events-list">
-        <div
-          v-for="event in events"
-          :key="event.id"
-          class="event-item"
-          @click="handleEventClick(event)"
-        >
-          <div class="event-marker" :style="{ backgroundColor: getEventColor(event.type) }"></div>
-          <div class="event-content">
-            <div class="event-name">{{ event.name }}</div>
-            <div class="event-date">{{ formatDate(event.date) }}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 事件详情：图片 + 音频 + 退出按钮 -->
-      <div v-if="currentEvent" class="event-detail">
-        <!-- 新增：详情头部（标题+退出按钮） -->
-        <div class="event-detail-header">
-          <h4 class="event-detail-title">{{ currentEvent.title }}</h4>
-          <button @click="exitEventDetail" class="exit-btn">退出</button>
-        </div>
-
-        <div class="event-image-wrapper">
-          <img
-            v-if="currentEvent.imageUrl"
-            :src="currentEvent.imageUrl"
-            :alt="currentEvent.title"
-            class="event-image"
-          >
-          <div v-else class="no-image">暂无相关图片</div>
-        </div>
-        <div class="audio-wrapper">
-          <audio
-            ref="audioPlayer"
-            :src="currentEvent.audioUrl"
-            controls
-            class="audio-player"
-          >
-            您的浏览器不支持音频播放
-          </audio>
+    <!-- 事件列表 -->
+    <div v-else-if="!isCollapsed" class="events-list">
+      <div
+        v-for="event in events"
+        :key="event.id"
+        class="event-item"
+        @click="handleEventClick(event)"
+      >
+        <div class="event-marker" :style="{ backgroundColor: getEventColor(event.type) }"></div>
+        <div class="event-content">
+          <div class="event-name">{{ event.name }}</div>
+          <div class="event-date">{{ formatDate(event.date) }}</div>
         </div>
       </div>
     </div>
@@ -89,9 +58,6 @@ const loading = ref(false)
 const error = ref(null)
 const events = ref([])
 const isCollapsed = ref(false)
-const currentEvent = ref(null) // 当前选中事件
-const audioPlayer = ref(null) // 音频DOM引用
-const chaptersData = ref(null) // 章节数据
 
 // 折叠/展开
 const toggleCollapse = () => {
@@ -122,66 +88,11 @@ const formatDate = (date) => {
   })
 }
 
-// 加载章节数据（chapters.json）
-const loadChapters = async () => {
-  try {
-    const res = await fetch('/outline/chapters.json')
-    chaptersData.value = await res.json()
-  } catch (err) {
-    console.error('加载章节数据失败:', err)
-    error.value = '加载章节数据失败'
-  }
-}
-
-// 匹配事件对应的章节信息
-const getChapterByEventId = (eventId) => {
-  if (!chaptersData.value?.chapters) return null
-  return chaptersData.value.chapters.find(chapter =>
-    chapter.event_ids?.includes(eventId)
-  )
-}
-
 // 事件点击逻辑
 const handleEventClick = (event) => {
   console.log('点击事件:', event)
+  // 只更新全局时间，故事面板会自动响应时间变化
   mapStore.setCurrentTime(event.date)
-
-  // 停止当前播放的音频
-  if (audioPlayer.value) {
-    audioPlayer.value.pause()
-    audioPlayer.value.currentTime = 0
-  }
-
-  // 匹配章节信息
-  const chapter = getChapterByEventId(event.id)
-  if (chapter) {
-    currentEvent.value = {
-      id: chapter.id,
-      title: chapter.title,
-      imageUrl: chapter.image?.url || '',
-      audioUrl: `/tts/kokoro/${chapter.id}.wav` // 音频路径匹配
-    }
-    // 自动播放音频（需浏览器允许用户交互后播放）
-    setTimeout(() => {
-      audioPlayer.value?.play().catch(err => {
-        console.warn('自动播放失败（浏览器策略限制）:', err)
-      })
-    }, 100)
-  } else {
-    currentEvent.value = null
-    console.warn(`未找到事件${event.id}对应的章节信息`)
-  }
-}
-
-// 新增：退出事件详情
-const exitEventDetail = () => {
-  // 停止音频播放
-  if (audioPlayer.value) {
-    audioPlayer.value.pause()
-    audioPlayer.value.currentTime = 0
-  }
-  // 清空当前选中事件，隐藏详情面板
-  currentEvent.value = null
 }
 
 // 加载事件数据
@@ -213,9 +124,8 @@ const loadEvents = async () => {
 }
 
 // 初始化加载
-onMounted(async () => {
-  await loadChapters() // 先加载章节数据
-  await loadEvents()   // 再加载事件数据
+onMounted(() => {
+  loadEvents()
 })
 </script>
 
@@ -226,12 +136,16 @@ onMounted(async () => {
   flex-direction: column;
   background: #ffffff;
   transition: all 0.3s ease;
+  height: 100%;
+  overflow: hidden;
 }
 
 .arc-diagram-panel.collapsed {
   width: auto;
   padding: 20px;
   min-height: auto;
+  height: auto;
+  overflow: visible;
 }
 
 .panel-header {
@@ -241,6 +155,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .header-actions {
@@ -353,8 +268,23 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   flex: 1;
-  max-height: 600px;
   overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0 -20px -20px -20px;
+  padding: 0 20px 20px 20px;
+}
+
+.events-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.events-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.events-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .event-item {
