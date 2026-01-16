@@ -5,170 +5,119 @@
             "x": -85.964,
             "z": 1.015,
             "ny": 0.2804,
-            "t": "battle",
-            "french_troops": 685000,
-            "russian_troops": 75000,
-            "force_ratio": 9.13
+            "t": "battle"
         },
         {
             "n": "Occupation of Vilnius",
             "x": -72.203,
             "z": 3.128,
             "ny": 0.3722,
-            "t": "battle",
-            "french_troops": 650000,
-            "russian_troops": 65000,
-            "force_ratio": 10.0
+            "t": "battle"
         },
         {
             "n": "Battle of Vitebsk",
             "x": -22.951,
             "z": -1.904,
             "ny": 0.4181,
-            "t": "battle",
-            "french_troops": 175000,
-            "russian_troops": 75000,
-            "force_ratio": 2.33
+            "t": "battle"
         },
         {
             "n": "Schwarzenberg advances into Volhynia",
             "x": -71.746,
             "z": 42.528,
             "ny": 0.4777,
-            "t": "battle",
-            "french_troops": 175000,
-            "russian_troops": 75000,
-            "force_ratio": 2.33
+            "t": "battle"
         },
         {
             "n": "Battle of Smolensk",
             "x": -4.599,
             "z": 2.182,
             "ny": 0.5434,
-            "t": "battle",
-            "french_troops": 175000,
-            "russian_troops": 130000,
-            "force_ratio": 1.35
+            "t": "battle"
         },
         {
             "n": "Battle of Gorodechno",
             "x": -65.0,
             "z": 25.333,
             "ny": 0.438,
-            "t": "battle",
-            "french_troops": 175000,
-            "russian_troops": 38000,
-            "force_ratio": 4.61
+            "t": "battle"
         },
         {
             "n": "Battle of Borodino",
             "x": 33.167,
             "z": -5.167,
             "ny": 0.4876,
-            "t": "battle",
-            "french_troops": 130000,
-            "russian_troops": 120000,
-            "force_ratio": 1.08
+            "t": "battle"
         },
         {
             "n": "Entry into Moscow",
             "x": 51.173,
             "z": -7.558,
             "ny": 0.4355,
-            "t": "battle",
-            "french_troops": 100000,
-            "russian_troops": 120000,
-            "force_ratio": 0.83
+            "t": "battle"
         },
         {
             "n": "Fire of Moscow",
             "x": 51.173,
             "z": -7.558,
             "ny": 0.4355,
-            "t": "battle",
-            "french_troops": 100000,
-            "russian_troops": 120000,
-            "force_ratio": 0.83
+            "t": "battle"
         },
         {
             "n": "Schwarzenberg begins retreat",
             "x": -87.66,
             "z": 29.025,
             "ny": 0.4156,
-            "t": "battle",
-            "french_troops": 100000,
-            "russian_troops": 120000,
-            "force_ratio": 0.83
+            "t": "battle"
         },
         {
             "n": "Retreat from Moscow begins",
             "x": 51.173,
             "z": -7.558,
             "ny": 0.4355,
-            "t": "battle",
-            "french_troops": 100000,
-            "russian_troops": 120000,
-            "force_ratio": 0.83
+            "t": "battle"
         },
         {
             "n": "Battle of Maloyaroslavets",
             "x": 39.667,
             "z": -0.167,
             "ny": 0.4367,
-            "t": "battle",
-            "french_troops": 24000,
-            "russian_troops": 20000,
-            "force_ratio": 1.2
+            "t": "battle"
         },
         {
             "n": "First snow",
             "x": 18.0,
             "z": -2.0,
             "ny": 0.5447,
-            "t": "battle",
-            "french_troops": 50000,
-            "russian_troops": 20000,
-            "force_ratio": 2.5
+            "t": "battle"
         },
         {
             "n": "Battle of Krasnoi",
             "x": -4.947,
             "z": 0.447,
             "ny": 0.4926,
-            "t": "battle",
-            "french_troops": 36000,
-            "russian_troops": 60000,
-            "force_ratio": 0.6
+            "t": "battle"
         },
         {
             "n": "Crossing of the Berezina River",
             "x": -44.833,
             "z": 6.333,
             "ny": 0.5323,
-            "t": "battle",
-            "french_troops": 27000,
-            "russian_troops": 61000,
-            "force_ratio": 0.44
+            "t": "battle"
         },
         {
             "n": "Napoleon abandons army",
             "x": -61.0,
             "z": 5.167,
             "ny": 0.4243,
-            "t": "battle",
-            "french_troops": 10000,
-            "russian_troops": 61000,
-            "force_ratio": 0.16
+            "t": "battle"
         },
         {
             "n": "Crossing out of Russia",
             "x": -85.964,
             "z": 1.015,
             "ny": 0.2804,
-            "t": "battle",
-            "french_troops": 22000,
-            "russian_troops": 61000,
-            "force_ratio": 0.36
+            "t": "battle"
         },
         {
             "n": "Kharkiv",
