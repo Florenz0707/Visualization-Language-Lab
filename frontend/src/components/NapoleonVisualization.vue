@@ -106,7 +106,7 @@ const showAnalysisPanel = ref(false)
 const analysisContent = ref('<p style="text-align:center; color:#666;">点击地图上的路线以查看分析。</p>')
 const is2DMode = ref(false)
 
-// --- 新增：筛选状态 ---
+// --- 筛选状态 ---
 const showAllAttack = ref(false)
 const showAllRetreat = ref(false)
 
@@ -193,7 +193,6 @@ watch(currentTimeIndex, (newVal) => {
   }
 })
 
-// 新增：监听筛选框变化，立即刷新路线
 watch([showAllAttack, showAllRetreat], () => {
   updateRouteVisibility(currentTimeIndex.value)
 })
@@ -665,6 +664,11 @@ function drawVectors(data) {
   }
 }
 
+/**
+ * === 修改说明：新增了箭头生成逻辑 ===
+ * 这里在生成 TubeGeometry 的同时，沿着路径计算切线方向，
+ * 并放置白色圆锥体（ConeGeometry）作为箭头，指示行军方向。
+ */
 function createRouteTube(points, color, radius) {
   if (points.length < 2) return null
   const vecs = points.map(p => new THREE.Vector3(
@@ -681,6 +685,41 @@ function createRouteTube(points, color, radius) {
       emissiveIntensity: 0.2
   })
   const mesh = new THREE.Mesh(geo, mat)
+
+  // === 新增：添加方向箭头 ===
+  // 1. 根据曲线长度决定箭头数量，避免短路线太密集或长路线太稀疏
+  const curveLength = curve.getLength();
+  // 每隔约 12 个单位长度放置一个箭头，至少放 1 个
+  const arrowCount = Math.max(1, Math.floor(curveLength / 12)); 
+
+  const arrowGeo = new THREE.ConeGeometry(radius * 2.5, radius * 6, 8);
+  const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffffff }); // 纯白色以保证对比度
+
+  for (let i = 1; i <= arrowCount; i++) {
+    // 避免在起点(0)和终点(1)正好边缘处放置，稍微往中间靠一点
+    const t = i / (arrowCount + 1); 
+    
+    // 获取曲线上该位置的点
+    const pt = curve.getPointAt(t);
+    // 获取该位置的切线向量（即方向）
+    const tangent = curve.getTangentAt(t);
+
+    const arrowMesh = new THREE.Mesh(arrowGeo, arrowMat);
+    arrowMesh.position.copy(pt);
+    
+    // 让箭头朝向切线方向
+    // lookAt 默认会让对象的 -Z 轴朝向目标，所以我们需要看向 "当前位置 + 切线方向"
+    arrowMesh.lookAt(pt.clone().add(tangent));
+    
+    // ConeGeometry 默认尖端朝向 +Y 轴，而我们需要它沿着刚才 lookAt 设定的 Z 轴方向
+    // 所以绕 X 轴旋转 90 度
+    arrowMesh.rotateX(Math.PI / 2);
+
+    // 将箭头添加为路线 Mesh 的子对象，这样路线隐藏/移动时，箭头也会同步
+    mesh.add(arrowMesh);
+  }
+  // === 箭头逻辑结束 ===
+
   mesh.castShadow = true
   scene.add(mesh)
   return mesh
@@ -784,19 +823,15 @@ function getDateForLocation(x, z, routes) {
   return null
 }
 
-// --- 修改部分：支持复选框筛选所有路线 ---
 function updateRouteVisibility(idx) {
   routeMeshes.forEach(m => {
     const isAttack = m.userData.type === '进攻'
     const isRetreat = m.userData.type === '撤退'
     const isCurrent = m.userData.dateIdx === idx
     
-    let visible = isCurrent // 默认：时间轴的当前帧始终可见
+    let visible = isCurrent 
 
-    // 筛选逻辑：如果勾选了"进攻"且该路线是进攻路线 -> 可见
     if (isAttack && showAllAttack.value) visible = true
-    
-    // 筛选逻辑：如果勾选了"撤退"且该路线是撤退路线 -> 可见
     if (isRetreat && showAllRetreat.value) visible = true
 
     m.visible = visible
@@ -825,9 +860,18 @@ function onMouseClick(event) {
   const routeIntersects = raycaster.intersectObjects(visibleRoutes)
   if (routeIntersects.length > 0) {
     const hit = routeIntersects[0]
-    highlightRoute(hit.object)
-    triggerAnalysis(hit.object, hit.point)
-    return
+    // 注意：hit.object 可能是箭头（子对象）或路线本身
+    // 如果点击到箭头，需要向上查找其父级（即路线 Mesh）
+    let target = hit.object;
+    if (!target.userData.isRoute && target.parent && target.parent.userData.isRoute) {
+        target = target.parent;
+    }
+    
+    if (target.userData.isRoute) {
+        highlightRoute(target)
+        triggerAnalysis(target, hit.point)
+        return
+    }
   }
   const arrowIntersects = raycaster.intersectObjects(arrowMeshes.map(a => a.mesh))
   if (arrowIntersects.length > 0) {
