@@ -7,21 +7,21 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useMapStore } from '@/stores/map'
-import { fetchEvents, fetchMovements, fetchTerritories, fetchFlows } from '@/services/api'
+import { fetchEvents, fetchTerritories, fetchFlows } from '@/services/api' // 注意：这里暂时去掉了 fetchMovements，因为我们改为动态生成轨迹
 
 const mapContainer = ref(null)
 const map = ref(null)
 const mapStore = useMapStore()
 
-// Layer groups
+// 动态图层组
 const layerGroups = ref({
-  events: null,
-  movements: null,
+  events: null,     // 用于显示点（圆点）
+  trajectory: null, // 用于显示动态生成的连线
   territories: null,
   flows: null
 })
 
-// Map layer groups (countries, provinces, cities, rivers)
+// 静态背景图层组
 const mapLayerGroups = ref({
   countries: null,
   provinces: null,
@@ -29,54 +29,140 @@ const mapLayerGroups = ref({
   rivers: null
 })
 
-// Store all data for filtering
+// 存储所有原始数据
 const allData = ref({
-  events: null,
-  movements: null,
+  eventsList: [], // 扁平化并排序后的事件数组
   territories: null,
   flows: null
 })
 
 onMounted(async () => {
-  // Initialize Leaflet map
+  initMap()
+  initLayerGroups()
+  await loadData()
+  await loadStaticMapLayers()
+  
+  // 初始化完成后，根据当前时间渲染一次
+  if (mapStore.currentTime) {
+    updateMapByTime(mapStore.currentTime)
+  }
+})
+
+// 1. 初始化地图实例
+const initMap = () => {
   map.value = L.map(mapContainer.value, {
-    center: [55.0, 30.0], // Center between Poland and Moscow for horizontal view
+    center: [55.0, 30.0],
     zoom: 4.5,
     zoomControl: true,
     minZoom: 3,
     maxZoom: 10
   })
 
-  // Add OpenStreetMap tiles
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
     maxZoom: 19
   }).addTo(map.value)
 
   mapStore.setMapInstance(map.value)
+}
 
-  // Load data layers
-  await loadLayers()
+// 2. 初始化空图层组（关键：先添加到地图，后续只操作数据增删）
+const initLayerGroups = () => {
+  // 轨迹线在下，点在上，所以先添加轨迹层
+  layerGroups.value.trajectory = L.layerGroup().addTo(map.value)
+  layerGroups.value.events = L.layerGroup().addTo(map.value)
+  
+  layerGroups.value.territories = L.layerGroup().addTo(map.value)
+  layerGroups.value.flows = L.layerGroup().addTo(map.value)
+}
 
-  // Load all map layers at startup
-  await loadAllMapLayers()
+// 3. 加载核心数据
+const loadData = async () => {
+  try {
+    // --- 加载 Events 并排序 ---
+    const eventsData = await fetchEvents({ projection: mapStore.projection })
+    
+    if (eventsData && eventsData.features) {
+      // 关键：按时间戳升序排序，确保连线顺序正确
+      allData.value.eventsList = eventsData.features.sort((a, b) => {
+        return new Date(a.properties.date).getTime() - new Date(b.properties.date).getTime()
+      })
+    }
+  } catch (error) {
+    console.error('Error loading events:', error)
+  }
+
+  // 加载领土等其他数据...
+  try {
+    const territoriesData = await fetchTerritories({ projection: mapStore.projection })
+    // 这里简单处理，直接显示领土，或者也可以根据时间过滤（如果领土有变动）
+    // 此处示例为直接显示
+    L.geoJSON(territoriesData, {
+        style: (feature) => ({
+            fillColor: feature.properties.faction === 'french' ? '#3b82f6' : '#ef4444',
+            weight: 1, opacity: 0.5, fillOpacity: 0.2
+        })
+    }).addTo(layerGroups.value.territories)
+  } catch (e) { console.error(e) }
+}
+
+// 4. 加载静态背景图层 (省份、河流等)
+const loadStaticMapLayers = async () => {
+  const mapLayerTypes = ['countries', 'provinces', 'cities_major', 'rivers']
+  
+  for (const layerId of mapLayerTypes) {
+    try {
+      // 假设这是你的本地API地址
+      const response = await fetch(`http://localhost:9000/api/maps/${layerId}?simplify=true`)
+      const data = await response.json()
+
+      const layer = L.geoJSON(data, {
+        style: (feature) => {
+          if (layerId === 'rivers') return { color: '#3b82f6', weight: 1.5, opacity: 0.5 }
+          return { fillColor: 'transparent', color: '#94a3b8', weight: 1, opacity: 0.6 }
+        },
+        pointToLayer: (feature, latlng) => {
+          if (layerId === 'cities_major') {
+            return L.circleMarker(latlng, { radius: 3, color: '#f59e0b', weight: 1 })
+          }
+        }
+      })
+      
+      mapLayerGroups.value[layerId] = layer
+      // 默认是否显示取决于 mapStore 的初始设置，这里暂不自动添加，由 toggle 控制
+    } catch (error) {
+      console.error(`Error loading ${layerId}:`, error)
+    }
+  }
+  
+  // 注册 Toggle 回调
+  mapStore.setMapLayerToggleFunction(toggleMapLayerVisibility)
+}
+
+// 核心逻辑：监听时间变化
+watch(() => mapStore.currentTime, (newTime) => {
+  updateMapByTime(newTime)
 })
 
-const loadLayers = async () => {
-  try {
-    // Load events
-    const eventsData = await fetchEvents({
-      projection: mapStore.projection
-    })
+const updateMapByTime = (currentTime) => {
+  if (!map.value || !allData.value.eventsList.length) return
 
-    // Store original data
-    allData.value.events = eventsData
+  const currentTimestamp = new Date(currentTime).getTime()
 
-    layerGroups.value.events = L.geoJSON(eventsData, {
+  // 1. 筛选出当前时间点之前发生的所有事件
+  const visibleEvents = allData.value.eventsList.filter(feature => {
+    const d = feature.properties.date
+    return d && new Date(d).getTime() <= currentTimestamp
+  })
+
+  // 2. 绘制点 (Events)
+  if (layerGroups.value.events) {
+    layerGroups.value.events.clearLayers()
+    
+    const geoJsonLayer = L.geoJSON({ type: 'FeatureCollection', features: visibleEvents }, {
       pointToLayer: (feature, latlng) => {
         const type = feature.properties.type
         let color = '#6b7280'
-
         if (type === 'battle') color = '#dc2626'
         else if (type === 'city') color = '#2563eb'
         else if (type === 'camp') color = '#16a34a'
@@ -87,306 +173,75 @@ const loadLayers = async () => {
           color: '#ffffff',
           weight: 1,
           opacity: 1,
-          fillOpacity: 0.8
+          fillOpacity: 1
         })
       },
       onEachFeature: (feature, layer) => {
-        if (feature.properties) {
-          const props = feature.properties
-          layer.bindPopup(`
-            <strong>${props.name || 'Unknown'}</strong><br>
-            Type: ${props.type || 'N/A'}<br>
-            Date: ${props.date || 'N/A'}
-          `)
-        }
+        const p = feature.properties
+        layer.bindPopup(`<strong>${p.name}</strong><br>${p.date}<br>${p.type}`)
       }
-    }).addTo(map.value)
-
-  } catch (error) {
-    console.error('Error loading events:', error)
-  }
-
-  try {
-    // Load movements
-    const movementsData = await fetchMovements({
-      projection: mapStore.projection,
-      zoom: Math.round(map.value.getZoom())
     })
-
-    layerGroups.value.movements = L.geoJSON(movementsData, {
-      style: (feature) => {
-        const direction = feature.properties.direction
-        const survivors = feature.properties.survivors || 10000
-
-        let color = '#6b7280'
-        if (direction === 'advance') color = '#3b82f6'
-        else if (direction === 'retreat') color = '#ef4444'
-
-        // Calculate line width based on survivors
-        let weight = 2
-        if (survivors > 100000) weight = 8
-        else if (survivors > 50000) weight = 5
-        else if (survivors > 10000) weight = 3
-
-        return {
-          color: color,
-          weight: weight,
-          opacity: 0.7
-        }
-      },
-      onEachFeature: (feature, layer) => {
-        if (feature.properties) {
-          const props = feature.properties
-          layer.bindPopup(`
-            <strong>${props.unit || 'Unknown Unit'}</strong><br>
-            Direction: ${props.direction || 'N/A'}<br>
-            Survivors: ${props.survivors ? props.survivors.toLocaleString() : 'N/A'}
-          `)
-        }
-      }
-    }).addTo(map.value)
-
-  } catch (error) {
-    console.error('Error loading movements:', error)
+    layerGroups.value.events.addLayer(geoJsonLayer)
   }
 
-  try {
-    // Load territories
-    const territoriesData = await fetchTerritories({
-      projection: mapStore.projection
-    })
+  // 3. 绘制连线 (Trajectory) - 连接所有可见的点
+  if (layerGroups.value.trajectory) {
+    layerGroups.value.trajectory.clearLayers()
 
-    layerGroups.value.territories = L.geoJSON(territoriesData, {
-      style: (feature) => {
-        const faction = feature.properties.faction
-        let color = '#6b7280'
-
-        if (faction === 'french') color = '#3b82f6'
-        else if (faction === 'russian') color = '#ef4444'
-
-        return {
-          fillColor: color,
-          fillOpacity: 0.2,
-          color: color,
-          weight: 1,
-          opacity: 0.5
-        }
-      },
-      onEachFeature: (feature, layer) => {
-        if (feature.properties) {
-          const props = feature.properties
-          layer.bindPopup(`
-            <strong>${props.name || 'Territory'}</strong><br>
-            Faction: ${props.faction || 'N/A'}
-          `)
-        }
-      }
-    }).addTo(map.value)
-
-  } catch (error) {
-    console.error('Error loading territories:', error)
-  }
-
-  try {
-    // Load flows
-    const flowsData = await fetchFlows({
-      simplify: true,
-      threshold: 0.01
-    })
-
-    allData.value.flows = flowsData
-
-    layerGroups.value.flows = L.geoJSON(flowsData, {
-      style: (feature) => {
-        const eventsCount = feature.properties.events_count || 1
-
-        // Calculate line width based on events count
-        let weight = 3
-        if (eventsCount > 10) weight = 6
-        else if (eventsCount > 5) weight = 5
-        else if (eventsCount > 2) weight = 4
-
-        return {
-          color: '#8b5cf6',
-          weight: weight,
-          opacity: 0.6,
-          dashArray: '5, 5'
-        }
-      },
-      onEachFeature: (feature, layer) => {
-        if (feature.properties) {
-          const props = feature.properties
-          layer.bindPopup(`
-            <strong>${props.unit || 'Flow'}</strong><br>
-            Events: ${props.events_count || 'N/A'}<br>
-            Period: ${props.start_date || 'N/A'} - ${props.end_date || 'N/A'}
-          `)
-        }
-      }
-    }).addTo(map.value)
-
-  } catch (error) {
-    console.error('Error loading flows:', error)
-  }
-}
-
-// Load all map layers at startup
-const loadAllMapLayers = async () => {
-  const mapLayerTypes = ['countries', 'provinces', 'cities_major', 'rivers']
-
-  for (const layerId of mapLayerTypes) {
-    try {
-      const response = await fetch(`http://localhost:9000/api/maps/${layerId}?simplify=true`)
-      const data = await response.json()
-
-      // Create layer but don't add to map yet
-      const layer = L.geoJSON(data, {
-        style: (feature) => {
-          if (layerId === 'countries' || layerId === 'provinces') {
-            return {
-              fillColor: 'transparent',
-              color: '#94a3b8',
-              weight: layerId === 'countries' ? 2 : 1,
-              opacity: 0.6
-            }
-          } else if (layerId === 'rivers') {
-            return {
-              color: '#3b82f6',
-              weight: 1.5,
-              opacity: 0.5
-            }
-          }
-          return {}
-        },
-        pointToLayer: (feature, latlng) => {
-          if (layerId === 'cities_major') {
-            return L.circleMarker(latlng, {
-              radius: 4,
-              fillColor: '#f59e0b',
-              color: '#fff',
-              weight: 1,
-              opacity: 1,
-              fillOpacity: 0.7
-            })
-          }
-        },
-        onEachFeature: (feature, layer) => {
-          if (feature.properties && feature.properties.name) {
-            layer.bindPopup(`<strong>${feature.properties.name}</strong>`)
-          }
-        }
+    if (visibleEvents.length > 1) {
+      // 提取坐标：GeoJSON 是 [lng, lat], Leaflet 需要 [lat, lng]
+      const latlngs = visibleEvents.map(f => {
+        const coords = f.geometry.coordinates
+        return [coords[1], coords[0]]
       })
 
-      mapLayerGroups.value[layerId] = layer
-    } catch (error) {
-      console.error(`Error loading map layer ${layerId}:`, error)
+      const polyline = L.polyline(latlngs, {
+        color: '#2563eb', // 轨迹颜色
+        weight: 3,
+        opacity: 0.8,
+        lineJoin: 'round',
+        dashArray: '1, 4', // 虚线样式，可选
+        dashOffset: '0'
+      })
+      
+      layerGroups.value.trajectory.addLayer(polyline)
+
+      // 可选：视角跟随最新的点
+      // const lastPoint = latlngs[latlngs.length - 1]
+      // map.value.panTo(lastPoint, { animate: true, duration: 0.5 })
     }
   }
-
-  // Store toggle function in mapStore after all layers are loaded
-  mapStore.setMapLayerToggleFunction(toggleMapLayerVisibility)
 }
 
-// Function to toggle map layer visibility
+// 辅助功能：图层切换
 const toggleMapLayerVisibility = (layerId, visible) => {
   if (!map.value) return
-
-  const layerGroup = mapLayerGroups.value[layerId]
-  if (!layerGroup) return
+  const group = mapLayerGroups.value[layerId]
+  if (!group) return
 
   if (visible) {
-    if (!map.value.hasLayer(layerGroup)) {
-      map.value.addLayer(layerGroup)
-    }
+    if (!map.value.hasLayer(group)) map.value.addLayer(group)
   } else {
-    if (map.value.hasLayer(layerGroup)) {
-      map.value.removeLayer(layerGroup)
-    }
+    if (map.value.hasLayer(group)) map.value.removeLayer(group)
   }
 }
 
-// Watch for layer visibility changes
+// 监听 Store 的图层显隐设置
 watch(() => mapStore.visibleLayers, (newLayers) => {
-  if (!map.value) return
-
-  Object.entries(layerGroups.value).forEach(([key, layerGroup]) => {
-    if (layerGroup) {
-      if (newLayers.includes(key)) {
-        if (!map.value.hasLayer(layerGroup)) {
-          map.value.addLayer(layerGroup)
+    // 处理动态图层的显隐
+    Object.keys(layerGroups.value).forEach(key => {
+        const layer = layerGroups.value[key]
+        if(!layer) return
+        if (newLayers.includes(key)) {
+            if (!map.value.hasLayer(layer)) map.value.addLayer(layer)
+        } else {
+            if (map.value.hasLayer(layer)) map.value.removeLayer(layer)
         }
-      } else {
-        if (map.value.hasLayer(layerGroup)) {
-          map.value.removeLayer(layerGroup)
-        }
-      }
-    }
-  })
+    })
 }, { deep: true })
 
-// Watch for time changes to filter data
-watch(() => mapStore.currentTime, (newTime) => {
-  filterDataByTime(newTime)
-})
-
-const filterDataByTime = (currentTime) => {
-  if (!map.value || !allData.value.events) return
-
-  const currentTimestamp = currentTime.getTime()
-
-  // Filter events by date
-  if (layerGroups.value.events) {
-    map.value.removeLayer(layerGroups.value.events)
-  }
-
-  const filteredEvents = {
-    ...allData.value.events,
-    features: allData.value.events.features.filter(feature => {
-      const eventDate = feature.properties.date
-      if (!eventDate) return true
-      const eventTimestamp = new Date(eventDate).getTime()
-      return eventTimestamp <= currentTimestamp
-    })
-  }
-
-  layerGroups.value.events = L.geoJSON(filteredEvents, {
-    pointToLayer: (feature, latlng) => {
-      const type = feature.properties.type
-      let color = '#6b7280'
-      if (type === 'battle') color = '#dc2626'
-      else if (type === 'city') color = '#2563eb'
-      else if (type === 'camp') color = '#16a34a'
-
-      return L.circleMarker(latlng, {
-        radius: 6,
-        fillColor: color,
-        color: '#ffffff',
-        weight: 1,
-        opacity: 1,
-        fillOpacity: 0.8
-      })
-    },
-    onEachFeature: (feature, layer) => {
-      if (feature.properties) {
-        const props = feature.properties
-        layer.bindPopup(`
-          <strong>${props.name || 'Unknown'}</strong><br>
-          Type: ${props.type || 'N/A'}<br>
-          Date: ${props.date || 'N/A'}
-        `)
-      }
-    }
-  })
-
-  if (mapStore.visibleLayers.includes('events')) {
-    layerGroups.value.events.addTo(map.value)
-  }
-}
-
 onUnmounted(() => {
-  if (map.value) {
-    map.value.remove()
-  }
+  if (map.value) map.value.remove()
 })
 </script>
 
@@ -395,5 +250,6 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   position: relative;
+  background-color: #f8fafc; /* 设置一个浅色背景，避免地图加载前的空白 */
 }
 </style>
