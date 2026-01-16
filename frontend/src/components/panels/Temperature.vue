@@ -30,10 +30,6 @@
     </div>
 
     <div v-else-if="!isCollapsed" class="temperature-content">
-      <div class="current-time-display">
-        <span class="time-label">当前时间:</span>
-        <span class="time-value">{{ formatDate(mapStore.currentTime) }}</span>
-      </div>
       <div class="current-temp">
         <span class="temp-label">当前平均气温:</span>
         <span class="temp-value">{{ currentTemperature }} °C</span>
@@ -44,8 +40,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import { useMapStore } from '@/stores/map'
+import { fetchTemperature } from '@/services/api'
 import * as d3 from 'd3'
 
 // 状态管理
@@ -55,18 +52,25 @@ const error = ref(null)
 const isCollapsed = ref(false)
 const temperatureData = ref([])
 const chartContainer = ref(null)
-let svg = null
+let svgContainer = null  // SVG容器
+let svg = null  // g元素（绘图区域）
 let xScale = null
 let yScale = null
 let lineGenerator = null
-let chartDimensions = { width: 600, height: 300, margin: { top: 20, right: 20, bottom: 40, left: 50 } }
+let chartDimensions = { width: 450, height: 300, margin: { top: 20, right: 5, bottom: 30, left: 20 } }
 
 // 折叠切换
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value
   // 折叠/展开时重绘图表
   if (!isCollapsed.value && temperatureData.value.length > 0) {
-    drawChart()
+    // 使用nextTick等待DOM更新后再绘制
+    nextTick(() => {
+      // 清空SVG引用，强制重新初始化
+      svg = null
+      svgContainer = null
+      drawChart()
+    })
   }
 }
 
@@ -79,61 +83,105 @@ const formatDate = (date) => {
   })
 }
 
-// 生成模拟气温数据（实际项目中替换为API请求）
-const generateTemperatureData = (startDate, endDate) => {
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  const data = []
-  
-  // 1812年拿破仑远征期间的气温特征：6-9月温暖，10-12月急剧下降
-  const baseTemps = {
-    6: 18, 7: 22, 8: 20, 9: 12, 10: 5, 11: -5, 12: -15
-  }
-
-  let currentDate = new Date(start)
-  while (currentDate <= end) {
-    const month = currentDate.getMonth() + 1 // 月份从1开始
-    const baseTemp = baseTemps[month] || 0
-    // 添加随机波动
-    const temp = baseTemp + (Math.random() * 4 - 2)
-    data.push({
-      date: new Date(currentDate),
-      temperature: parseFloat(temp.toFixed(1))
-    })
-    // 按天生成数据
-    currentDate.setDate(currentDate.getDate() + 1)
-  }
-  return data
-}
-
-// 加载气温数据
+// 从CSV加载真实的温度数据并进行线性插值
 const loadTemperatureData = async () => {
   loading.value = true
   error.value = null
 
   try {
-    // 模拟API请求（实际项目中替换为真实接口）
-    await new Promise(resolve => setTimeout(resolve, 800))
-    
-    // 基于地图时间范围生成数据
-    const data = generateTemperatureData(
-      mapStore.timeRange.start,
-      mapStore.timeRange.end
-    )
-    temperatureData.value = data
-    drawChart()
+    // 加载CSV文件
+    const response = await fetch('/data/temperature_1812.csv')
+    const csvText = await response.text()
+
+    // 解析CSV
+    const lines = csvText.trim().split('\n')
+    const headers = lines[0].split(',')
+
+    // 提取温度数据点
+    const rawDataPoints = []
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',')
+      if (values.length >= 2) {
+        const date = new Date(values[0].trim())
+        const temp = parseFloat(values[1].trim()) // tavg_abs 列
+        if (!isNaN(temp) && date instanceof Date && !isNaN(date)) {
+          rawDataPoints.push({ date, temperature: temp })
+        }
+      }
+    }
+
+    // 按日期排序
+    rawDataPoints.sort((a, b) => a.date - b.date)
+
+    // 使用线性插值生成每日数据
+    const start = new Date(mapStore.timeRange.start)
+    const end = new Date(mapStore.timeRange.end)
+    const interpolatedData = []
+
+    let currentDate = new Date(start)
+    const dayInMs = 24 * 60 * 60 * 1000
+
+    while (currentDate <= end) {
+      const currentTime = currentDate.getTime()
+
+      // 找到当前日期前后的数据点
+      let beforePoint = null
+      let afterPoint = null
+
+      for (let i = 0; i < rawDataPoints.length; i++) {
+        const pointTime = rawDataPoints[i].date.getTime()
+        if (pointTime <= currentTime) {
+          beforePoint = rawDataPoints[i]
+        } else {
+          afterPoint = rawDataPoints[i]
+          break
+        }
+      }
+
+      let temperature
+      if (!beforePoint) {
+        // 当前日期在第一个数据点之前，使用第一个数据点的温度
+        temperature = rawDataPoints[0].temperature
+      } else if (!afterPoint) {
+        // 当前日期在最后一个数据点之后，使用最后一个数据点的温度
+        temperature = beforePoint.temperature
+      } else {
+        // 线性插值
+        const beforeTime = beforePoint.date.getTime()
+        const afterTime = afterPoint.date.getTime()
+        const ratio = (currentTime - beforeTime) / (afterTime - beforeTime)
+        temperature = beforePoint.temperature + (afterPoint.temperature - beforePoint.temperature) * ratio
+      }
+
+      interpolatedData.push({
+        date: new Date(currentDate),
+        temperature: parseFloat(temperature.toFixed(1))
+      })
+
+      currentDate = new Date(currentDate.getTime() + dayInMs)
+    }
+
+    temperatureData.value = interpolatedData
+
+    // 不在这里调用 drawChart，等待 loading 状态改变后 DOM 更新
   } catch (err) {
     error.value = '加载气温数据失败'
     console.error('Error loading temperature data:', err)
   } finally {
     loading.value = false
+    // loading 状态改变后，使用 nextTick 等待 DOM 更新，然后绘制图表
+    nextTick(() => {
+      if (temperatureData.value.length > 0 && !isCollapsed.value) {
+        drawChart()
+      }
+    })
   }
 }
 
 // 线性插值计算当前气温
 const interpolateTemperature = (data, currentTime) => {
   if (!data || data.length === 0) return '—'
-  
+
   const currentTimestamp = currentTime.getTime()
   let beforeData = null
   let afterData = null
@@ -158,10 +206,10 @@ const interpolateTemperature = (data, currentTime) => {
   const afterTime = afterData.date.getTime()
   const beforeTemp = beforeData.temperature
   const afterTemp = afterData.temperature
-  
+
   const timeRatio = (currentTimestamp - beforeTime) / (afterTime - beforeTime)
   const interpolatedTemp = beforeTemp + (afterTemp - beforeTemp) * timeRatio
-  
+
   return interpolatedTemp.toFixed(1)
 }
 
@@ -177,11 +225,14 @@ const initChart = () => {
   // 清空容器
   d3.select(chartContainer.value).selectAll('*').remove()
 
-  // 创建SVG
-  svg = d3.select(chartContainer.value)
+  // 创建SVG容器
+  svgContainer = d3.select(chartContainer.value)
     .append('svg')
     .attr('width', chartDimensions.width)
     .attr('height', chartDimensions.height)
+
+  // 创建g元素（绘图区域）
+  svg = svgContainer
     .append('g')
     .attr('transform', `translate(${chartDimensions.margin.left}, ${chartDimensions.margin.top})`)
 
@@ -214,7 +265,6 @@ const initChart = () => {
     .attr('y', -chartDimensions.margin.left + 10)
     .attr('x', -innerHeight / 2)
     .attr('text-anchor', 'middle')
-    .text('气温 (°C)')
 
   // 定义折线生成器
   lineGenerator = d3.line()
@@ -240,9 +290,29 @@ const drawChart = () => {
     new Date(mapStore.timeRange.end)
   ])
 
+  // 生成每月1日和15日的刻度值
+  const start = new Date(mapStore.timeRange.start)
+  const end = new Date(mapStore.timeRange.end)
+  const tickValues = []
+
+  let currentDate = new Date(start.getFullYear(), start.getMonth(), 1)
+  while (currentDate <= end) {
+    if (currentDate >= start) {
+      tickValues.push(new Date(currentDate))
+      // 添加15日
+      const fifteenth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 15)
+      if (fifteenth <= end) {
+        tickValues.push(fifteenth)
+      }
+    }
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+  }
+
   // 更新X轴
   svg.select('.x-axis')
-    .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.timeFormat('%Y-%m-%d')))
+    .call(d3.axisBottom(xScale)
+      .tickValues(tickValues)
+      .tickFormat(d3.timeFormat('%m-%d')))
     .selectAll('text')
     .attr('transform', 'rotate(-45)')
     .style('text-anchor', 'end')
@@ -290,10 +360,47 @@ const drawChart = () => {
     .attr('stroke-dasharray', '5,5')
 }
 
-// 监听地图时间变化，更新当前气温和图表标记
+// 只更新时间标记线（性能优化 - 使用D3 transition）
+const updateTimeMarker = () => {
+  if (!svg || !xScale || isCollapsed.value) return
+
+  const innerHeight = chartDimensions.height - chartDimensions.margin.top - chartDimensions.margin.bottom
+  const currentTimeX = xScale(mapStore.currentTime)
+
+  // 查找现有标记线
+  let marker = svg.select('.current-time-marker')
+
+  if (marker.empty()) {
+    // 如果不存在，创建新的
+    marker = svg.append('line')
+      .attr('class', 'current-time-marker')
+      .attr('y1', 0)
+      .attr('y2', innerHeight)
+      .attr('stroke', '#ef4444')
+      .attr('stroke-width', 1.5)
+      .attr('stroke-dasharray', '5,5')
+  }
+
+  // 使用transition平滑更新位置
+  marker
+    .attr('x1', currentTimeX)
+    .attr('x2', currentTimeX)
+}
+
+// 使用requestAnimationFrame进行更高效的更新
+let rafId = null
+const throttledUpdateTimeMarker = () => {
+  if (rafId) return
+  rafId = requestAnimationFrame(() => {
+    updateTimeMarker()
+    rafId = null
+  })
+}
+
+// 监听地图时间变化，只更新时间标记
 watch(() => mapStore.currentTime, () => {
-  if (temperatureData.value.length > 0 && !isCollapsed.value) {
-    drawChart()
+  if (temperatureData.value.length > 0 && !isCollapsed.value && svg) {
+    throttledUpdateTimeMarker()
   }
 })
 
@@ -443,7 +550,7 @@ onUnmounted(() => {
   gap: 16px;
 }
 
-.current-time-display, .current-temp {
+.current-temp {
   padding: 12px;
   background: #f8fafc;
   border-radius: 8px;
@@ -451,22 +558,23 @@ onUnmounted(() => {
   border: 1px solid #e2e8f0;
 }
 
-.time-label, .temp-label {
+.temp-label {
   font-size: 12px;
   color: #64748b;
   margin-right: 8px;
 }
 
-.time-value, .temp-value {
+.temp-value {
   font-size: 14px;
   font-weight: 600;
   color: #1e293b;
 }
 
 .chart-container {
+  align-items: center;
   width: 100%;
   height: 300px;
-  min-height: 300px;
+  min-height: 100px;
 }
 
 /* D3图表样式 */

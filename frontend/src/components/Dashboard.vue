@@ -75,6 +75,7 @@ import Temperature from './panels/Temperature.vue'
   height: 100%; /* 高度铺满父容器 */
   display: flex;
   flex-direction: column;
+  opacity: 0.8;
 }
 
 .temperature-panel-wrapper::-webkit-scrollbar {
@@ -107,6 +108,7 @@ import Temperature from './panels/Temperature.vue'
   max-height: 45vh;
   display: flex;
   flex-direction: column;
+  opacity: 0.8;
 }
 
 .panel-wrapper::-webkit-scrollbar {

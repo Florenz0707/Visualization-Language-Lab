@@ -78,6 +78,19 @@ export const fetchTroopStatistics = async (params) => {
 }
 
 /**
+ * Fetch temperature for a specific date in 1812
+ * @param {Object} params
+ * @param {string} params.date_str - ISO date in 1812 (YYYY-MM-DD)
+ * @param {string} [params.scope] - 'global' or 'bbox' (default 'bbox')
+ * @param {string} [params.bbox] - Optional bbox as minlat,maxlat,minlon,maxlon
+ * @returns {Promise<Object>} Temperature data
+ */
+export const fetchTemperature = async (params) => {
+  const response = await apiClient.get('/api/temperature/1812', { params })
+  return response.data
+}
+
+/**
  * Fetch story mode outline
  * @param {number} [chapterId] - Optional chapter ID
  * @returns {Promise<Object>} Story outline data
@@ -119,17 +132,17 @@ export const analyzeRoute = async (params) => {
 
 请生成一段简短精炼的战况分析（200字以内），请务必包含以下维度的辩证思考：
 
-- **地形与季节气候**: 
+- **地形与季节气候**:
   结合当时的月份（6-9月为夏秋，10-12月为冬），分析气温（酷热、泥泞或严寒）以及地形（河流、森林、平原）对法军的具体影响。
 
 - **军事态势与成败分析**:
   如果是【进攻阶段】（10月中旬前）：
   请重点分析法军取得的**战术胜利**（如攻占关键城市、赢得战斗、推进速度快）以及**成功的原因**（如拿破仑的指挥艺术、法军的高昂士气）。同时，辩证地指出潜在的**战略隐患**（如补给线拉长、非战斗减员）。**不要一味强调困难，要体现法军前期的强势。**
-  
+
   如果是【撤退阶段】（10月中旬后）：
   请分析导致法军**失败或崩溃的核心原因**（是俄军的游击战、焦土政策，还是极端天气？），以及法军在绝境中的突围努力。
 
-- **历史评述**: 
+- **历史评述**:
   用一句话总结这一刻对整个战争走向的关键意义。
 
 语调要求：沉稳、专业，类似历史纪录片旁白，既要看到胜利的光辉，也要看到失败的阴影。

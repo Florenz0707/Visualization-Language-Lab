@@ -34,12 +34,10 @@
         <div class="stat-item french">
           <div class="stat-label">法军</div>
           <div class="stat-value">{{ currentFrenchCount }}</div>
-          <div class="stat-date">{{ currentFrenchDate }}</div>
         </div>
         <div class="stat-item russian">
           <div class="stat-label">俄军</div>
           <div class="stat-value">{{ currentRussianCount }}</div>
-          <div class="stat-date">{{ currentRussianDate }}</div>
         </div>
       </div>
 
@@ -47,11 +45,6 @@
       <div class="chart-container" v-if="currentFrenchCount !== '-' && currentRussianCount !== '-'">
         <h4 class="chart-title">兵力占比对比</h4>
         <div id="troop-pie-chart"></div>
-      </div>
-
-      <div class="current-time-display">
-        <span class="time-label">当前时间:</span>
-        <span class="time-value">{{ formatDate(mapStore.currentTime) }}</span>
       </div>
     </div>
   </div>
@@ -252,22 +245,6 @@ const updatePieChart = () => {
       const percent = ((d.value / total) * 100).toFixed(1)
       return `${d.data.name} ${percent}%`
     })
-
-  // 添加中心文本
-  svg.append('text')
-    .attr('text-anchor', 'middle')
-    .attr('dy', '0em')
-    .style('font-size', '14px')
-    .style('font-weight', '700')
-    .style('color', '#1e293b')
-    .text(`总计 ${total.toLocaleString()}`)
-  
-  svg.append('text')
-    .attr('text-anchor', 'middle')
-    .attr('dy', '1.5em')
-    .style('font-size', '12px')
-    .style('color', '#64748b')
-    .text('兵力总数')
 }
 
 const loadStatistics = async () => {
@@ -284,7 +261,7 @@ const loadStatistics = async () => {
 
     console.log('Statistics API response:', data)
     statisticsData.value = data
-    
+
     // 数据加载完成后更新饼图
     nextTick(() => {
       updatePieChart()
@@ -302,11 +279,21 @@ onMounted(() => {
   loadStatistics()
 })
 
-// 监听时间变化更新饼图
+// 使用requestAnimationFrame进行更高效的饼图更新
+let rafId = null
+const throttledUpdatePieChart = () => {
+  if (rafId) return
+  rafId = requestAnimationFrame(() => {
+    updatePieChart()
+    rafId = null
+  })
+}
+
+// 监听时间变化更新饼图（使用RAF优化）
 watch([currentFrenchData, currentRussianData], () => {
   if (!isCollapsed.value && currentFrenchCount.value !== '-' && currentRussianCount.value !== '-') {
     nextTick(() => {
-      updatePieChart()
+      throttledUpdatePieChart()
     })
   }
 }, { deep: true })
@@ -450,14 +437,14 @@ watch(() => mapStore.timeRange, () => {
 .statistics-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
 }
 
 .stats-summary {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .stat-item {
@@ -489,12 +476,6 @@ watch(() => mapStore.timeRange, () => {
   color: #1e293b;
 }
 
-.stat-date {
-  font-size: 11px;
-  color: #64748b;
-  margin-top: 4px;
-}
-
 /* 新增：饼图容器样式 */
 .chart-container {
   padding: 16px;
@@ -516,25 +497,5 @@ watch(() => mapStore.timeRange, () => {
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.current-time-display {
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  text-align: center;
-  border: 1px solid #e2e8f0;
-}
-
-.time-label {
-  font-size: 12px;
-  color: #64748b;
-  margin-right: 8px;
-}
-
-.time-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
 }
 </style>

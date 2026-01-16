@@ -53,18 +53,18 @@
           <h4 class="event-detail-title">{{ currentEvent.title }}</h4>
           <button @click="exitEventDetail" class="exit-btn">退出</button>
         </div>
-        
+
         <div class="event-image-wrapper">
-          <img 
+          <img
             v-if="currentEvent.imageUrl"
-            :src="currentEvent.imageUrl" 
-            :alt="currentEvent.title" 
+            :src="currentEvent.imageUrl"
+            :alt="currentEvent.title"
             class="event-image"
           >
           <div v-else class="no-image">暂无相关图片</div>
         </div>
         <div class="audio-wrapper">
-          <audio 
+          <audio
             ref="audioPlayer"
             :src="currentEvent.audioUrl"
             controls
@@ -136,7 +136,7 @@ const loadChapters = async () => {
 // 匹配事件对应的章节信息
 const getChapterByEventId = (eventId) => {
   if (!chaptersData.value?.chapters) return null
-  return chaptersData.value.chapters.find(chapter => 
+  return chaptersData.value.chapters.find(chapter =>
     chapter.event_ids?.includes(eventId)
   )
 }
@@ -226,12 +226,12 @@ onMounted(async () => {
   flex-direction: column;
   background: #ffffff;
   transition: all 0.3s ease;
-  min-height: 400px;
 }
 
 .arc-diagram-panel.collapsed {
   width: auto;
   padding: 20px;
+  min-height: auto;
 }
 
 .panel-header {

@@ -36,18 +36,6 @@
         <span>{{ layer.name }}</span>
       </label>
     </div>
-
-    <!-- 地图图层控制 -->
-    <div class="map-layer-controls">
-      <label v-for="mapLayer in mapLayers" :key="mapLayer.id" class="layer-checkbox">
-        <input
-          type="checkbox"
-          :checked="isMapLayerVisible(mapLayer.id)"
-          @change="toggleMapLayer(mapLayer.id)"
-        />
-        <span>{{ mapLayer.name }}</span>
-      </label>
-    </div>
   </div>
 </template>
 
@@ -63,13 +51,6 @@ const layers = ref([
   { id: 'movements', name: '行军' },
   { id: 'territories', name: '区域' },
   { id: 'flows', name: '流向' }
-])
-
-const mapLayers = ref([
-  { id: 'countries', name: '国家边界' },
-  { id: 'provinces', name: '省份' },
-  { id: 'cities_major', name: '主要城市' },
-  { id: 'rivers', name: '河流' }
 ])
 
 const minTime = computed(() => mapStore.timeRange.start.getTime())
@@ -104,14 +85,6 @@ const isLayerVisible = (layerId) => {
 
 const toggleLayer = (layerId) => {
   mapStore.toggleLayer(layerId)
-}
-
-const isMapLayerVisible = (layerId) => {
-  return mapStore.visibleMapLayers?.includes(layerId) || false
-}
-
-const toggleMapLayer = (layerId) => {
-  mapStore.toggleMapLayer(layerId)
 }
 
 watch(() => mapStore.isPlaying, (isPlaying) => {
@@ -217,13 +190,6 @@ onUnmounted(() => {
 .layer-controls {
   display: flex;
   gap: 16px;
-}
-
-.map-layer-controls {
-  display: flex;
-  gap: 16px;
-  padding-left: 16px;
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .layer-checkbox {

@@ -41,7 +41,7 @@ onMounted(async () => {
   initLayerGroups()
   await loadData()
   await loadStaticMapLayers()
-  
+
   // 初始化完成后，根据当前时间渲染一次
   if (mapStore.currentTime) {
     updateMapByTime(mapStore.currentTime)
@@ -71,7 +71,7 @@ const initLayerGroups = () => {
   // 轨迹线在下，点在上，所以先添加轨迹层
   layerGroups.value.trajectory = L.layerGroup().addTo(map.value)
   layerGroups.value.events = L.layerGroup().addTo(map.value)
-  
+
   layerGroups.value.territories = L.layerGroup().addTo(map.value)
   layerGroups.value.flows = L.layerGroup().addTo(map.value)
 }
@@ -81,7 +81,7 @@ const loadData = async () => {
   try {
     // --- 加载 Events 并排序 ---
     const eventsData = await fetchEvents({ projection: mapStore.projection })
-    
+
     if (eventsData && eventsData.features) {
       // 关键：按时间戳升序排序，确保连线顺序正确
       allData.value.eventsList = eventsData.features.sort((a, b) => {
@@ -109,7 +109,7 @@ const loadData = async () => {
 // 4. 加载静态背景图层 (省份、河流等)
 const loadStaticMapLayers = async () => {
   const mapLayerTypes = ['countries', 'provinces', 'cities_major', 'rivers']
-  
+
   for (const layerId of mapLayerTypes) {
     try {
       // 假设这是你的本地API地址
@@ -127,21 +127,31 @@ const loadStaticMapLayers = async () => {
           }
         }
       })
-      
+
       mapLayerGroups.value[layerId] = layer
       // 默认是否显示取决于 mapStore 的初始设置，这里暂不自动添加，由 toggle 控制
     } catch (error) {
       console.error(`Error loading ${layerId}:`, error)
     }
   }
-  
+
   // 注册 Toggle 回调
   mapStore.setMapLayerToggleFunction(toggleMapLayerVisibility)
 }
 
-// 核心逻辑：监听时间变化
+// 使用requestAnimationFrame优化地图更新
+let mapUpdateRafId = null
+const throttledUpdateMap = (newTime) => {
+  if (mapUpdateRafId) return
+  mapUpdateRafId = requestAnimationFrame(() => {
+    updateMapByTime(newTime)
+    mapUpdateRafId = null
+  })
+}
+
+// 核心逻辑：监听时间变化（使用RAF节流）
 watch(() => mapStore.currentTime, (newTime) => {
-  updateMapByTime(newTime)
+  throttledUpdateMap(newTime)
 })
 
 const updateMapByTime = (currentTime) => {
@@ -158,7 +168,7 @@ const updateMapByTime = (currentTime) => {
   // 2. 绘制点 (Events)
   if (layerGroups.value.events) {
     layerGroups.value.events.clearLayers()
-    
+
     const geoJsonLayer = L.geoJSON({ type: 'FeatureCollection', features: visibleEvents }, {
       pointToLayer: (feature, latlng) => {
         const type = feature.properties.type
@@ -203,7 +213,7 @@ const updateMapByTime = (currentTime) => {
         dashArray: '1, 4', // 虚线样式，可选
         dashOffset: '0'
       })
-      
+
       layerGroups.value.trajectory.addLayer(polyline)
 
       // 可选：视角跟随最新的点
