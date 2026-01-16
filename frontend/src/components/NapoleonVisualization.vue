@@ -17,9 +17,9 @@
 
       <div class="legend-section">
         <div class="legend-title">关键地点 (箭头类型)</div>
-        <div class="legend-item"><span class="icon dot-capital"></span> 首都/重镇</div>
-        <div class="legend-item"><span class="icon dot-battle"></span> 关键战役</div>
-        <div class="legend-item"><span class="icon dot-city"></span> 普通城市</div>
+        <div class="legend-item"><span class="icon dot-capital"></span> 关键战役</div>
+        <div class="legend-item"><span class="icon dot-battle"></span> 首都/重镇</div>
+        <div class="legend-item"><span class="icon dot-city"></span> 事件（降雪，焦土政策等）</div>
       </div>
 
       <div class="legend-section">
